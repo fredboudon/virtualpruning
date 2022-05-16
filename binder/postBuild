@@ -1,2 +1,4 @@
 set -ex
 
+jupyter labextension install pgljupyter
+jupyter lab build
