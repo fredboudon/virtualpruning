@@ -1,0 +1,115 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+
+options.py
+src/cpp/userconfig.h
+src/openalea/lpy/config.py
+
+src/openalea/lpy/gui/debugger_right_ui.py
+src/openalea/lpy/gui/debugger_ui.py
+src/openalea/lpy/gui/killsimulationwidget.py
+src/openalea/lpy/gui/logdialog.py
+src/openalea/lpy/gui/logindialog.py
+src/openalea/lpy/gui/lpymainwindow.py
+src/openalea/lpy/gui/lpyprefwidget.py
+src/openalea/lpy/gui/py2exe_release.py
+#src/openalea/lpy/gui/lpyresources_rc.py
+src/openalea/lpy/gui/scalarfloatmetaedit.py
+src/openalea/lpy/gui/scalarmetaedit.py
+
+# lpy temp file
+*.lpy~
+*.py~
+\#*\#
+
+# C extensions
+build-scons
+build-scons_noqt
+build-scons_qt4
+build-scons_qt5
+*.so
+*.dll
+*.dblite
+*.lib
+*.o
+
+# Distribution / packaging
+.Python
+env/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# build/
+
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*,cover
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+
+# Sphinx documentation
+doc/_build
+doc/_build/doctrees
+.idea/
+cmake-build-debug/
+
+# Windows config folders
+.vscode
+.vs
+
+# build folders
+build*
+
+# C extensions
+*.so
+*.dll
+*.dblite
+*.lib
+
+
+# build-scons
+# build-scons_noqt
+# build-scons_qt4
+# build-scons_qt5
+
+# PyBuilder
+target/
+
+.vscode
+build-cmake
+
+.DS_Store
