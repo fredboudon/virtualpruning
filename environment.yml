@@ -3,10 +3,10 @@ channels:
   - fredboudon
   - conda-forge
 dependencies:
-  - openalea.lpy=3.8.*
-  - openalea.plantgl=3.9.*
+  - openalea.lpy=3.*
+  - openalea.plantgl=3.*
   - openalea.mtg
-  - jupyterlab>=3.0.16
+  - jupyterlab>=3.*
   - jupyterlab_widgets
   - ipython=7
   - matplotlib
@@ -14,5 +14,6 @@ dependencies:
   - pandas
   - scipy
   - pip
+  - nodejs
   - pip:
     - pgljupyter>=1.1.*
