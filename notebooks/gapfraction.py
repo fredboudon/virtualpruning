@@ -81,9 +81,9 @@ def generate_from_representation(scene, size = 800, debug = False):
         povstream.close()
         cmd = povray_exe
         if platform == "win32":
-            cmd +="/EXIT /RENDER "
+            cmd +=" /EXIT /RENDER "
         else:
-            cmd +="-I"
+            cmd +=" -I"
         cmd += tmpfile+".pov -O"+tmpfile+".png +H"+str(size)+" +W"+str(size)+" +FN -GA -V "
         if platform == "linux" or platform == "linux2" or platform == 'darwin':
             cmd += " &> /dev/null"
