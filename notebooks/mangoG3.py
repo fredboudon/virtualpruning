@@ -41,11 +41,14 @@ def get_gu_bottom_point(mtg,vid):
 def get_gu_top_point(mtg,vid):
     return vid
 
+def is_terminal(mtg,vid):
+    return mtg.nb_children(vid) == 0
+
 def get_all_gus(mtg):
     return [vid for vid in mtg.vertices(scale=3) if is_gu_point(mtg, vid)]
 
 def get_all_terminal_gus(mtg):
-    return [vid for vid in mtg.vertices(scale=3) if is_gu_point(mtg, vid) and mtg.nb_children(vid) == 0]
+    return [vid for vid in mtg.vertices(scale=3) if is_gu_point(mtg, vid) and is_terminal(mtg,vid) == 0]
 
 def get_terminal_gus_from_ancestor(mtg, vid):
     return [vid for vid in mtg.Extremities(vid) if is_gu_point(mtg, vid)]
@@ -116,12 +119,22 @@ def was_previously_pruned(mtg, vid):
 
 def get_parent(mtg, vid):
     assert not vid is None
-    vid = mtg.parent(vid)
-    if not is_gu_point(mtg, vid):
-        vid = mtg.parent(vid)
-    assert vid is None or is_gu_point(mtg, vid)
-    return vid
+    parent = mtg.parent(vid)
+    if not is_gu_point(mtg, parent):
+        parent = mtg.parent(parent)
+    if not parent is None and not is_gu_point(mtg, parent):
+        raise ValueError(vid, parent)
+    return parent
 
+def get_children(mtg, vid):
+    assert not vid is None
+    fchildren = []
+    for ch in mtg.children(vid):
+        if not is_gu_point(mtg, ch):
+            fchildren += get_children(mtg, ch)
+        else:
+            fchildren.append(ch)
+    return fchildren
 
 def get_ancestor(mtg, vid, order):
     assert order > 0
@@ -133,3 +146,97 @@ eApical, eLateral = 1,2
 
 def gu_position(mtg, vid):
     return eApical if mtg.edge_type(get_gu_bottom_point(mtg,vid)) == '<' else eLateral
+
+
+def nbtotalleaves(mtg):
+    return gu_recursive_property_from_terminal(mtg, lambda vid, childrenvalues : sum(childrenvalues)+get_gu_nb_leaf(mtg, vid), lambda vid: get_gu_nb_leaf(mtg, vid))
+
+def gus_depth_from_terminal(mtg, agregation = min, terminalorder = 0):
+    return gu_recursive_property_from_terminal(mtg, lambda vid, childrenvalues : agregation(childrenvalues)+1, terminalorder)
+
+def gus_depth_from_root(mtg):
+    return gu_recursive_property_from_root(mtg)
+
+def gu_recursive_property_from_terminal(mtg, nodeaxiom = lambda vid, childrenvalues : sum(childrenvalues)+1, leafaxiom = lambda vid : 0, root = None):
+    from openalea.mtg.traversal import post_order2
+    res = {}
+    if root is None:
+        root = mtg.roots(scale=mtg.max_scale())[0]
+    for vid in post_order2(mtg, root):
+        if is_terminal(mtg, vid): 
+            res[vid] = leafaxiom(vid) if callable(leafaxiom) else leafaxiom
+        elif is_gu_point(mtg,vid):
+            children = get_children(mtg, vid)
+            for child in children:
+                assert is_gu_point(mtg,child)
+            res[vid] = nodeaxiom(vid, [res[child] for child in children])
+    return res
+
+def gu_recursive_property_from_root(mtg, nodeaxiom = lambda vid, parentvalue : parentvalue+1, rootaxiom = lambda vid : 0, root = None):
+    from openalea.mtg.traversal import pre_order2
+    res = {}
+    if root is None:
+        root = mtg.roots(scale=mtg.max_scale())[0]
+    for vid in pre_order2(mtg, root):
+        if get_parent(mtg, vid) is None: 
+            res[vid] = rootaxiom(vid) if callable(rootaxiom) else rootaxiom
+        elif is_gu_point(mtg,vid):
+            parent = get_parent(mtg, vid)
+            res[vid] = nodeaxiom(vid, res[parent])
+    return res
+
+def repare_mango_lighted():
+    import openalea.plantgl.all as pgl
+    s = pgl.Scene('../data/lightedG3.bgeom')
+    s2 = pgl.Scene('../data/consolidated_mango3d.bgeom')
+
+    pid2sid = {}
+    points = []
+    #key = lambda bbx : tuple([round(v,2) for v in bbx.getCenter()])
+    key = lambda bbx :  bbx.getCenter()
+
+    for i, (sid, lsh) in enumerate(s2.todict().items()):
+        bbx = pgl.BoundingBox(pgl.Scene(lsh))
+        c = key(bbx)
+        points.append(c)
+        pid2sid[i] = sid
+
+    kdtree = pgl.ANNKDTree3(points)
+
+    for i,sh in enumerate(s):
+        bbx = pgl.BoundingBox(sh)
+        res = kdtree.k_closest_points(key(bbx),1,pgl.norm(bbx.getSize()))
+        sh.id = pid2sid[res[0]]
+
+    pgl.Viewer.display(s)
+
+
+def bbox(mtg, selectionratio = 0.13):
+    """
+    Compute the bounding box of the tree.
+    :return: the dimension in cm3
+    """
+    import numpy as np
+    def minmaxvalue(positions, coord, selectionratio):
+        cmax = max(positions[:,coord])
+        cmin = min(positions[:,coord])
+        clayer = (cmax-cmin) * selectionratio
+        downlayer = positions[positions[:,coord] < cmin+clayer,coord]
+        mmin = np.mean(downlayer)
+        toplayer = positions[positions[:,coord] > cmax-clayer,coord]
+        mmax = np.mean(toplayer)
+        return mmin, mmax
+    positions = np.array([pos for vid, pos in mtg.property('Position').items() if mtg.property('UnitType')[vid] != 'B'])
+    xmin, xmax = minmaxvalue(positions, 0, selectionratio)
+    ymin, ymax = minmaxvalue(positions, 1, selectionratio)
+    zmin, zmax = minmaxvalue(positions, 2, selectionratio)
+    return (xmin, xmax), (ymin, ymax), (zmin, zmax)
+
+def volume(mtg, selectionratio = 0.13):
+    """
+    Compute the volume tree.
+    :return: the volume in m3
+    """
+    (xmin, xmax), (ymin, ymax), (zmin, zmax) = bbox(mtg, selectionratio)
+    return (xmax-xmin)*(ymax-ymin)*(zmax-zmin)/ 1000000.
+
