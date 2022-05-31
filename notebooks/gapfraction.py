@@ -45,6 +45,8 @@ def read_povray_exe(fname = 'config.cfg'):
     else:
         if platform == "linux" or platform == "linux2" or platform == 'darwin':
             return '/opt/local/bin/povray'
+        elif platform == 'win32':
+            return 'C:/Program Files/povray/v3.7/bin/pvengine.exe'
         else:
             return 'povray'
 
@@ -77,7 +79,12 @@ def generate_from_representation(scene, size = 800, debug = False):
         if len(scene) > 0:
             povstream.write('#include "mangostructure.pov"\n\n\n')
         povstream.close()
-        cmd = povray_exe+" "+tmpfile+".pov -O"+tmpfile+".png +H"+str(size)+" +W"+str(size)+" +FN -GA -V "
+        cmd = povray_exe
+        if platform == "win32":
+            cmd +="/EXIT /RENDER "
+        else:
+            cmd +="-I"
+        cmd += tmpfile+".pov -O"+tmpfile+".png +H"+str(size)+" +W"+str(size)+" +FN -GA -V "
         if platform == "linux" or platform == "linux2" or platform == 'darwin':
             cmd += " &> /dev/null"
         from time import time
