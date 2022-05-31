@@ -61,6 +61,7 @@ def generate_from_representation(scene, size = 800, debug = False):
     from math import degrees
     import os
     import shutil
+    povray_exe = get_povray_exe()
     if os.path.exists('povray'):
         shutil.rmtree('povray')
     os.makedirs('povray')
@@ -76,8 +77,7 @@ def generate_from_representation(scene, size = 800, debug = False):
         if len(scene) > 0:
             povstream.write('#include "mangostructure.pov"\n\n\n')
         povstream.close()
-        povray_exe = get_povray_exe()
-        cmd = povray_exe+" -I"+tmpfile+".pov -O"+tmpfile+".png +H"+str(size)+" +W"+str(size)+" +FN -GA -V "
+        cmd = povray_exe+" "+tmpfile+".pov -O"+tmpfile+".png +H"+str(size)+" +W"+str(size)+" +FN -GA -V "
         if platform == "linux" or platform == "linux2" or platform == 'darwin':
             cmd += " &> /dev/null"
         from time import time
@@ -88,7 +88,7 @@ def generate_from_representation(scene, size = 800, debug = False):
         if debug:
             print('Done in',time()-t, 'sec.')
         from PIL import Image
-        img = Image.open(tmpfile+".png")
+        img = np.asarray(Image.open(tmpfile+".png"))
     except Exception as e:
         os.chdir(os.pardir)
         raise e        
