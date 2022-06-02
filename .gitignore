@@ -86,3 +86,4 @@ target/
 build-cmake
 
 .DS_Store
+notebooks/config.cfg
