@@ -168,7 +168,12 @@ def leafsmb():
     leafsmb.name = 'leaf'
     return leafsmb
 
-def representation(mtg, focus = None, colorizer = ClassColoring(), leaves = False, wood = True, gc = True, todate = None):
+axis, north = (0,0,1), -(90-53)
+
+def rotate_scene(sc, axis = axis, angle = north):
+    return Scene([Shape(AxisRotated(axis,angle,sh.geometry),sh.appearance,sh.id,sh.parentId) for sh in sc])
+
+def representation(mtg, focus = None, colorizer = ClassColoring(), leaves = False, wood = True, gc = True, fieldoriented = True, todate = None):
     import inspect
     if inspect.isclass(colorizer):
         colorizer = colorizer()
@@ -324,6 +329,8 @@ def representation(mtg, focus = None, colorizer = ClassColoring(), leaves = Fals
     sc = pf.plot(origins=[(0,0,0)],visitor=plantframe_visitor,gc=gc, turtle = turtle, display = False)
     if hasattr(colorizer,'done'):
         colorizer.done(turtle)
+    if fieldoriented:
+        sc = rotate_scene(sc, axis, north)
     return sc
 
 
@@ -348,8 +355,6 @@ def treecentroid(mtg, date = None):
 
     return centroid
 
-def rotate_scene(axis, angle, sc):
-    return Scene([Shape(AxisRotated(axis,angle,sh.geometry),sh.appearance,sh.id,sh.parentId) for sh in sc])
 
 plot3D = True
 
@@ -378,7 +383,10 @@ def plot_terminal_diameter(mtg, leaves = True, minvalue = None, maxvalue = None)
 
 def projectview(scene, shvalue):
     from openalea.plantgl.scenegraph.colormap import PglMaterialMap
-    cmap = PglMaterialMap(min(shvalue),max(shvalue))
+    if isinstance(shvalue, dict):
+        cmap = PglMaterialMap(min(shvalue.values()),max(shvalue.values()))
+    else:
+        cmap = PglMaterialMap(min(shvalue),max(shvalue))
     return Scene([Shape(sh.geometry, cmap(shvalue[sh.id]),sh.id,sh.parentId) for sh in scene])
 
 def plot_projection(scene, shvalue):

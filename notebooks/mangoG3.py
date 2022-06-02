@@ -210,8 +210,9 @@ def repare_mango_lighted():
 
     pgl.Viewer.display(s)
 
+selectionratio = 0.01 # 0.13
 
-def bbox(mtg, selectionratio = 0.13):
+def bbox(mtg, selectionratio = selectionratio):
     """
     Compute the bounding box of the tree.
     :return: the dimension in cm3
@@ -232,7 +233,7 @@ def bbox(mtg, selectionratio = 0.13):
     zmin, zmax = minmaxvalue(positions, 2, selectionratio)
     return (xmin, xmax), (ymin, ymax), (zmin, zmax)
 
-def volume(mtg, selectionratio = 0.13):
+def volume(mtg, selectionratio = selectionratio):
     """
     Compute the volume tree.
     :return: the volume in m3
@@ -240,4 +241,4 @@ def volume(mtg, selectionratio = 0.13):
     (xmin, xmax), (ymin, ymax), (zmin, zmax) = bbox(mtg, selectionratio)
     return (xmax-xmin)*(ymax-ymin)*(zmax-zmin)/ 1000000.
 
-ref_volume = 37.661114634371984
+ref_volume = 67.3 # 37.661114634371984
