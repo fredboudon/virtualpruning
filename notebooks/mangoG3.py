@@ -240,3 +240,4 @@ def volume(mtg, selectionratio = 0.13):
     (xmin, xmax), (ymin, ymax), (zmin, zmax) = bbox(mtg, selectionratio)
     return (xmax-xmin)*(ymax-ymin)*(zmax-zmin)/ 1000000.
 
+ref_volume = 37.661114634371984

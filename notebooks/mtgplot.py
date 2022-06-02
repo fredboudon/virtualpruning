@@ -266,7 +266,8 @@ def representation(mtg, focus = None, colorizer = ClassColoring(), leaves = Fals
                 if g.edge_type(v) == '<':
                     nbleaf = mtg.property('NbLeaf').get(v,0)
                     if not colortodraw :
-                        turtle.moveTo(pt, radius)                        
+                        turtle.move(pt)
+                        turtle.setWidth(radius)                        
                     elif not leaves or nbleaf == 0:
                         if wood:
                             turtle.lineTo(pt, radius)
@@ -347,6 +348,8 @@ def treecentroid(mtg, date = None):
 
     return centroid
 
+def rotate_scene(axis, angle, sc):
+    return Scene([Shape(AxisRotated(axis,angle,sh.geometry),sh.appearance,sh.id,sh.parentId) for sh in sc])
 
 plot3D = True
 

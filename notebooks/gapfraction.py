@@ -9,23 +9,23 @@ header = '''
 #ifndef (__camera_definition__)
 #declare __camera_definition__ = true;
 
-camera {
+camera {{
    fisheye
    angle 150
-    location <25,30,150>
+    location <{xpos},{ypos},{camheight}>
     sky <1,0,0>
     right <1,0,0>
-    look_at <25,30,151>
-}
+    look_at <{xpos},{ypos},{camheight} + 1>
+}}
 
-light_source {
+light_source {{
      <0,0,0>
     color rgb 0
-}
+}}
 
 
 
-background { color rgb <1,1,1> }
+background {{ color rgb <1,1,1> }}
 
 
 #end // __camera_definition__
@@ -56,7 +56,7 @@ def get_povray_exe():
         povray_exe = read_povray_exe()
     return povray_exe
 
-def generate_from_representation(scene, size = 800, debug = False):
+def generate_from_representation(scene, size = 400, camheight = 120, xpos = 25, ypos = 30, antialiasing = False, debug = False):
     from sys import platform
     import numpy as np
     import pandas as pd
@@ -75,7 +75,7 @@ def generate_from_representation(scene, size = 800, debug = False):
         if len(scene) > 0:
             scene.save('mangostructure.pov')
         povstream = open(tmpfile+'.pov','w')
-        povstream.write(header)
+        povstream.write(header.format(camheight=camheight, xpos=xpos, ypos=ypos))
         if len(scene) > 0:
             povstream.write('#include "mangostructure.pov"\n\n\n')
         povstream.close()
@@ -84,7 +84,11 @@ def generate_from_representation(scene, size = 800, debug = False):
             cmd +=" /EXIT /RENDER "
         else:
             cmd +=" -I"
-        cmd += tmpfile+".pov -O"+tmpfile+".png +H"+str(size)+" +W"+str(size)+" +FN -GA -V "
+        cmd += tmpfile+".pov -O"+tmpfile+".png +H"+str(size)+" +W"+str(size)+" +FN -GA "
+        if antialiasing:
+            cmd += '+A'
+        else:
+            cmd += '-A'            
         if platform == "linux" or platform == "linux2" or platform == 'darwin':
             cmd += " &> /dev/null"
         from time import time
@@ -104,18 +108,32 @@ def generate_from_representation(scene, size = 800, debug = False):
         shutil.rmtree('povray')
     return img
 
-def generate(mtg, colorizer = mp.BlackColoring, size = 800, leaves = True, gc = True, debug = False):
-    sc = mp.representation(mtg, colorizer=colorizer, leaves=leaves, gc=gc)
-    return generate_from_representation(sc, size, debug)
+def generate(mtg, colorizer = mp.BlackColoring, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, leaves = True, wood = True, gc = True, debug = False):
+    sc = mp.representation(mtg, colorizer=colorizer, leaves=leaves, wood = wood, gc=gc)
+    return generate_from_representation(sc, size, camheight=camheight, xpos = xpos, ypos = ypos, antialiasing = antialiasing, debug=debug)
 
 def nbwhite(img):
     import numpy as np
     npimg = np.asarray(img)
     return npimg[np.where(npimg>0)].sum()
 
-def gap_fraction(mtg, size = 800, debug = False):
-    return gap_fraction_from_scene(mp.representation(mtg, colorizer=mp.BlackColoring, leaves=True, gc=True), size=size, debug=debug)
+def gap_fraction(mtg, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, debug = False):
+    return gap_fraction_from_scene(mp.representation(mtg, colorizer=mp.BlackColoring, leaves=True, gc=True), size=size, camheight=camheight, xpos = xpos, ypos = ypos, antialiasing = antialiasing, debug=debug)
 
-def gap_fraction_from_scene(scene, size = 800, debug = False):
+def gap_fraction_from_scene(scene, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, debug = False):
     from openalea.plantgl.all import Scene
-    return nbwhite(generate_from_representation(scene, size=size, debug=debug))/nbwhite(generate_from_representation(Scene(), size=size, debug=debug))
+    nbpix = nbwhite(generate_from_representation(scene, size=size, camheight=camheight, xpos = xpos, ypos = ypos, antialiasing = antialiasing, debug=debug))
+    if size == 800:
+        refwhite = 384528780
+    elif size == 400:
+        refwhite = 96142140
+    else:
+        img = generate_from_representation(Scene(), size=size, debug=debug)
+        if debug:
+            from matplotlib.pyplot import imshow, show
+            imshow(img)
+            show()
+        refwhite = nbwhite(img)
+    if debug:
+        print(nbpix,refwhite)
+    return nbpix/refwhite
