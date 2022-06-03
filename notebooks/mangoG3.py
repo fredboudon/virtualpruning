@@ -48,7 +48,7 @@ def get_all_gus(mtg):
     return [vid for vid in mtg.vertices(scale=3) if is_gu_point(mtg, vid)]
 
 def get_all_terminal_gus(mtg):
-    return [vid for vid in mtg.vertices(scale=3) if is_gu_point(mtg, vid) and is_terminal(mtg,vid) == 0]
+    return [vid for vid in mtg.vertices(scale=3) if is_gu_point(mtg, vid) and is_terminal(mtg,vid) ]
 
 def get_terminal_gus_from_ancestor(mtg, vid):
     return [vid for vid in mtg.Extremities(vid) if is_gu_point(mtg, vid)]

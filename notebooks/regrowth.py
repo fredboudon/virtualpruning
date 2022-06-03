@@ -1,4 +1,5 @@
 from numpy.random import binomial, poisson, uniform, normal
+from math import exp, radians
 import sys
 
 def binomial_proba(intercept, slope, factor):
@@ -45,6 +46,7 @@ def lateral_directions(maindir, angle, nb):
     return result
 
 from mangoG3 import *
+from pruning import n1, n2, n3, T0, T1, T2, T3
 
 def create_daughters(mtg, vid, apical, nblateral, burstdate, totalleafarea = None,  individualleafarea = None):
     parentdirection = get_gu_normed_direction(mtg, vid)
@@ -283,33 +285,40 @@ def growth_unpruned_gu(mtg, vid, intensity, pruningdate):
         burstdate = pruningdate + timedelta(days = burstdelay_unpruned(intensity))
         return create_daughters(mtg, vid, int(apical_bud), nbdaughter-int(apical_bud), burstdate, totalleafarea, individualleafarea)
 
-import util ; reload(util)
-from util import *
+#import util ; reload(util)
+#from util import *
 
 
-def growth(mtg, listidpruned, intensity, pruningdate = date(2017,2,1), maxdiamunpruned = 10):
-    newmtg = deepcopy(mtg)
-    listidpruned = dict([(ni, set(ids)) for ni,ids in listidpruned.items() ])
+def growth(mtg, intensity = None, pruningdate = date(2017,2,1), maxdiamunpruned = 10, inplace = False):
+    if not inplace:
+        from copy import deepcopy
+        newmtg = deepcopy(mtg)
+    else:
+        newmtg = mtg
+    if intensity is None:
+        from pruning import intensity_level, continuous_intensity_from_pruned
+        intensity = intensity_level(continuous_intensity_from_pruned(mtg))
+
+    listidpruned = mtg.property('pruned')
     terminals = get_all_terminal_gus(mtg)
+
     nbterminals = len(terminals)
     newids = []
     print("Should examine", nbterminals, "terminal GUs.")
     nbpruned, nbunpruned, nbignored = 0,0,0
-    for count, vid in enumerate(terminals):
-        pruned = False
+    for vid in terminals:
         lnewids = None
-        for severity, ids in listidpruned.items():
-            if vid in ids:
-                # we consider a pruned gu:
-                lnewids = growth_pruned_gu(newmtg, vid, intensity, severity, pruningdate)
-                nbpruned += 1
-                pruned = True
-                break
-        if not pruned and get_gu_diameter(mtg, vid) <= maxdiamunpruned and not 'A' in mtg.property('Taille').get(vid,''):
+        if vid in listidpruned:
+            # we consider a pruned gu:
+            severity =  listidpruned[vid]
+            lnewids = growth_pruned_gu(newmtg, vid, intensity, severity, pruningdate)
+            nbpruned += 1
+        elif get_gu_diameter(mtg, vid) <= maxdiamunpruned and not 'A' in mtg.property('Taille').get(vid,''):
             nbunpruned += 1
             lnewids = growth_unpruned_gu(newmtg, vid, intensity, pruningdate)
-        elif not pruned:
+        else:
             nbignored += 1
+
         if lnewids:
             newids += lnewids
     print("Processed", nbpruned, "pruned terminal GU and", nbunpruned, "unpruned terminal GU and ", nbignored, "ignored.")
@@ -317,13 +326,14 @@ def growth(mtg, listidpruned, intensity, pruningdate = date(2017,2,1), maxdiamun
 
 
 class GrowthColoring: 
-    def __init__(self, newids):
-        self.newids = set(newids)
+    def __init__(self):
+        pass
     def prepare_turtle(self, turtle):
         from openalea.plantgl.all import Material
         turtle.setMaterial(1,Material((45,65,15))) # ,transparency=0.8))
         turtle.setMaterial(10,Material((200,200,0)))
         turtle.setMaterial(11,Material((200,0,0)))
+        turtle.setMaterial(12,Material((0,0,200)))
     def set_mtg(self, mtg):
         self.mtg = mtg            
         self.colors = { False : 1, True : 2}
@@ -332,9 +342,15 @@ class GrowthColoring:
         print(self.mindate, self.maxdate)
         self.deltadate = float((self.maxdate - self.mindate).days)
     def __call__(self, turtle, vid):
-        if vid in self.newids:
+        if vid in self.mtg.property('BurstDate'):
             d = (get_gu_property(self.mtg, vid, "BurstDate")-self.mindate).days
             turtle.interpolateColors(10,11,d/self.deltadate)
+        elif vid in self.mtg.property('pruned'):
+            turtle.setColor(12)
         else:
             turtle.setColor(1)
 
+def plot_regrowth(mtg, **displayparam):
+    import mtgplot as mp
+    sc = mp.representation(mtg, colorizer=GrowthColoring, **displayparam)
+    return mp.display(sc)
