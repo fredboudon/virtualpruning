@@ -430,7 +430,7 @@ def growth_unpruned_gu_2022(mtg, vid, intensity, zeta_day_min, pruningdate):
 ################################################################################# Ajout 2022 Mortalité des UCs mères
 def Kill_pruned_GU_mother(mtg, vid, intensity, severity, pruningdate):
     diameter = get_gu_diameter(mtg, vid)
-    # Metter une condition, car il n'y a que sur les UCs taillées qu'il faut tuer des UCs !
+    # Mettre une condition, car il n'y a que sur les UCs taillées qu'il faut tuer des UCs !
     Death = Death_pruned_2022(diameter, intensity, severity, TrPPFD_day_min)
     if Death:
         ## Ajouter le code pour faire disparaitre l'UC de la maquette 
