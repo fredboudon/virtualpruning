@@ -346,7 +346,12 @@ class GrowthColoring:
             d = (get_gu_property(self.mtg, vid, "BurstDate")-self.mindate).days
             turtle.interpolateColors(10,11,d/self.deltadate)
         elif vid in self.mtg.property('pruned'):
+            gc = turtle.getParameters().isGeneralizedCylinderOn()
+            if gc:
+                turtle.stopGC()
             turtle.setColor(12)
+            if gc:
+                turtle.startGC()
         else:
             turtle.setColor(1)
 
