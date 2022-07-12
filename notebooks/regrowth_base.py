@@ -165,19 +165,20 @@ def individual_leafarea_unpruned(intensity):
 
 
 class GrowthColoring: 
-    def __init__(self, newids):
-        self.newids = set(newids)
+    def __init__(self):
+        pass
     def prepare_turtle(self, turtle):
         from openalea.plantgl.all import Material
         turtle.setMaterial(1,Material((45,65,15))) # ,transparency=0.8))
         turtle.setMaterial(10,Material((200,200,0)))
         turtle.setMaterial(11,Material((200,0,0)))
     def set_mtg(self, mtg):
-        self.mtg = mtg            
+        self.mtg = mtg
+        self.newids = set([vid for vid,regrowth in mtg.property('Regrowth').items() if regrowth == True])
         self.colors = { False : 1, True : 2}
         self.mindate = min(self.mtg.property('BurstDate').values()) #date(2017,2,1)
         self.maxdate = max(self.mtg.property('BurstDate').values()) #date(2017,6,1)
-        print(self.mindate, self.maxdate)
+        #print(self.mindate, self.maxdate)
         self.deltadate = float((self.maxdate - self.mindate).days)
     def __call__(self, turtle, vid):
         if vid in self.newids:
@@ -186,8 +187,34 @@ class GrowthColoring:
         else:
             turtle.setColor(1)
 
-def plot_growth(mtg, newids, **options):
+
+
+def plot_growth(mtg, **options):
     import mtgplot as mp
     options.setdefault('leaves',True)
     options.setdefault('gc',False)
-    return mp.plot_tree(mtg, colorizer = GrowthColoring(newids), **options)
+    return mp.plot_tree(mtg, colorizer = GrowthColoring, **options)
+
+
+def plot_growth_dynamic(regrowth, **options):
+    from ipywidgets import interact, interactive, fixed, interact_manual
+    import ipywidgets as widgets
+    import datetime
+    from IPython.display import display
+    import mtgplot as mp
+    options.setdefault('leaves',True)
+    options.setdefault('gc',False)
+    mindate = min(regrowth.property('BurstDate').values())
+    maxdate = max(regrowth.property('BurstDate').values())
+    print(mindate,'---',maxdate)
+    nbdays = (maxdate-mindate).days
+    sw = mp.plot_tree(regrowth, colorizer = GrowthColoring, todate = maxdate, **options)
+    display(sw)
+    x=widgets.IntSlider(min=0, max=nbdays, step=1, value=nbdays)
+    def plot_dyn(x):
+        print(mindate+datetime.timedelta(days=x))
+        sc = mp.representation(regrowth, colorizer = GrowthColoring,  todate = mindate+datetime.timedelta(days=x), **options)
+        sw.set_scenes([sc]) 
+    im = interact_manual(plot_dyn, x=x)
+    im.widget.children[0].description = 'Display'
+    return im

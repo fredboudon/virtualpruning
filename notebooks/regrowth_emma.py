@@ -217,7 +217,7 @@ def prop_leaf_fall_2022(rank):
 # y1 = (nb feuille mois n-1) - (nb feuille mois n) : succès
 # y2 = nb noeuds - {(nb feuille mois n-1) - (nb feuille mois n)} : Echec
 
-def Kill_leaf(mtg, vid, rank):
+def leaf_death(mtg, vid):
     # Ecrire une fonction qui définie le rang
     Leaf_fall = nb_leaf_fall_2022(rank)
     if Leaf_fall:
@@ -227,30 +227,3 @@ def Kill_leaf(mtg, vid, rank):
 
 ## Etape finale, combiner tout les processus ? 
 
-def growth_2022(mtg, listidpruned, intensity, pruningdate = date(2021,2,1), maxdiamunpruned = 10):
-    newmtg = deepcopy(mtg)
-    listidpruned = dict([(ni, set(ids)) for ni,ids in listidpruned.items() ])
-    terminals = get_all_terminal_gus(mtg)
-    nbterminals = len(terminals)
-    newids = []
-    print("Should examine", nbterminals, "terminal GUs.")
-    nbpruned, nbunpruned, nbignored = 0,0,0
-    for count, vid in enumerate(terminals):
-        pruned = False
-        lnewids = None
-        for severity, ids in listidpruned.items():
-            if vid in ids:
-                # we consider a pruned gu:
-                lnewids = growth_pruned_gu(newmtg, vid, intensity, severity, pruningdate)
-                nbpruned += 1
-                pruned = True
-                break
-        if not pruned and get_gu_diameter(mtg, vid) <= maxdiamunpruned and not 'A' in mtg.property('Taille').get(vid,''):
-            nbunpruned += 1
-            lnewids = growth_unpruned_gu(newmtg, vid, intensity, pruningdate)
-        elif not pruned:
-            nbignored += 1
-        if lnewids:
-            newids += lnewids
-    print("Processed", nbpruned, "pruned terminal GU and", nbunpruned, "unpruned terminal GU and ", nbignored, "ignored.")
-    return newmtg, newids
