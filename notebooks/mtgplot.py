@@ -248,7 +248,12 @@ def representation(mtg, focus = None, colorizer = ClassColoring(), leaves = Fals
 
     def plantframe_visitor(g, v, turtle):
         if todraw and not v in todraw: return
-        if todate and g.property('DigitDate')[v] > todate: return
+        if todate :
+            digitdate = g.property('DigitDate').get(v)
+            if digitdate and digitdate > todate: return
+            burstdate = g.property('BurstDate').get(v)
+            if burstdate and burstdate > todate: return
+
 
         from random import gauss
         radius = diameters.get(v)
@@ -337,7 +342,7 @@ def representation(mtg, focus = None, colorizer = ClassColoring(), leaves = Fals
 def retrievedates(mtg):
     import numpy as np
     import pandas as pd
-    dates = np.unique(list(mtg.property('DigitDate').values()))
+    dates = np.unique(list(mtg.property('DigitDate').values()))+np.unique(list(mtg.property('BurstDate').values()))
     dates.sort()
     dates = np.unique([pd.Timestamp(d.year,d.month,d.day,23,59) for d in dates])
     return dates

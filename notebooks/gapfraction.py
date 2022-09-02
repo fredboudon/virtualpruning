@@ -4,11 +4,8 @@ header = '''
  * Example of use : povray -Ifile.pov -Ofile.png +FN +H600 +W800 +A.
  * File Generated with PlantGL 3D Viewer.
  */
-
-
 #ifndef (__camera_definition__)
 #declare __camera_definition__ = true;
-
 camera {{
    fisheye
    angle 150
@@ -17,19 +14,12 @@ camera {{
     right <1,0,0>
     look_at <{xpos},{ypos},{camheight} + 1>
 }}
-
 light_source {{
      <0,0,0>
     color rgb 0
 }}
-
-
-
 background {{ color rgb <1,1,1> }}
-
-
 #end // __camera_definition__
-
 '''
 import mtgplot as mp
 from importlib import reload
@@ -108,8 +98,8 @@ def generate_from_representation(scene, size = 400, camheight = 120, xpos = 25, 
         shutil.rmtree('povray')
     return img
 
-def generate(mtg, colorizer = mp.BlackColoring, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, leaves = True, wood = True, gc = True, debug = False):
-    sc = mp.representation(mtg, colorizer=colorizer, leaves=leaves, wood = wood, gc=gc)
+def generate(mtg, colorizer = mp.BlackColoring, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, leaves = True, wood = True, gc = True, debug = False, todate=None):
+    sc = mp.representation(mtg, colorizer=colorizer, leaves=leaves, wood = wood, gc=gc, todate=todate)
     return generate_from_representation(sc, size, camheight=camheight, xpos = xpos, ypos = ypos, antialiasing = antialiasing, debug=debug)
 
 def nbwhite(img):
@@ -117,8 +107,8 @@ def nbwhite(img):
     npimg = np.asarray(img)
     return npimg[np.where(npimg>0)].sum()
 
-def gap_fraction(mtg, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, debug = False):
-    return gap_fraction_from_scene(mp.representation(mtg, colorizer=mp.BlackColoring, leaves=True, gc=True), size=size, camheight=camheight, xpos = xpos, ypos = ypos, antialiasing = antialiasing, debug=debug)
+def gap_fraction(mtg, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, debug = False, todate=None):
+    return gap_fraction_from_scene(mp.representation(mtg, colorizer=mp.BlackColoring, leaves=True, gc=True, todate=todate), size=size, camheight=camheight, xpos = xpos, ypos = ypos, antialiasing = antialiasing, debug=debug)
 
 def gap_fraction_from_scene(scene, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, debug = False):
     from openalea.plantgl.all import Scene
@@ -137,3 +127,8 @@ def gap_fraction_from_scene(scene, size = 400, camheight = 150, xpos = 25, ypos 
     if debug:
         print(nbpix,refwhite)
     return nbpix/refwhite
+
+def gapfraction_dynamic(mtg, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, debug = False):
+    import numpy as np
+    dates = sorted(np.unique(list(mtg.property('BurstDate').values())))
+    return [(d,gap_fraction(mtg, size=size, camheight=camheight, xpos = xpos, ypos = ypos, antialiasing = antialiasing, debug=debug, todate=d)) for d in dates]

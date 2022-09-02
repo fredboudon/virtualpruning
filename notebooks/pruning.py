@@ -9,6 +9,13 @@ n1, n2, n3 = 1,2,3
 #diameterrange = { 1 : (6.9, 1.6) , 2 : (9.5, 2.5), 3 : (13.1, 3.4)}
 diameterrange = { n1 : (3.15, 17.20) , n2 : (4.32, 19.2), n3 : (5.5, 22.09)}
 
+# Threshold are expressed in kg.m-3
+T1threshold = 0.20
+T2threshold = 0.40
+T3threshold = 0.60
+
+T0, T1, T2, T3 = "T0", "T1", "T2", "T3"
+
 
 def valid_diameter(mtg, vid, depth):
     mean, std = diameterrange[depth]
@@ -103,7 +110,7 @@ def plot_pruning(mtg, listidpruned = None, leaves = True, onlypruning = False, c
     return mp.display(sc)
 
 
-def define_pruning(mtg, nbcuts, potential_cutpoints):
+def define_pruning(mtg, nbcuts, potential_cutpoints = None):
     """ Determine at which point the pruning should occurs.
         :params nbcuts: int or tuple. Nb of cuts. 
         If a single value is given, it applies this number of cut for n1, n2 et n3. 
@@ -190,12 +197,6 @@ def continuous_intensity_from_pruned(mtg):
 
     return biomass / mvolume 
 
-# Threshold are expressed in kg.m-3
-T1threshold = 0.20
-T2threshold = 0.40
-T3threshold = 0.60
-
-T0, T1, T2, T3 = "T0", "T1", "T2", "T3"
 
 def intensity_level(continuous_intensity): 
     if continuous_intensity == 0: return T0
@@ -203,6 +204,5 @@ def intensity_level(continuous_intensity):
     elif continuous_intensity <= T2threshold: return T2
     elif continuous_intensity <= T3threshold: return T3
     raise ValueError(continuous_intensity)
-    
 
 
