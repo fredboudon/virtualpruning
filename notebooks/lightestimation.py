@@ -106,16 +106,19 @@ def light(scene, sun = None, sky = None, useplantgl = True, debug = True):
     else:
         return caribu(scene, sun, sky, debug)
 
-def extend_mtg_with_light(mtg, TrPPFD = None, Zeta = None, inplace=True):
+def extend_mtg_with_light(mtg, TrPPFD = None, Zeta = None, inplace=True, **properties):
     if not inplace:
         from copy import deepcopy
         mtg = deepcopy(mtg)
-    if TrPPFD:
+    if not TrPPFD is None:
         for propname, propvalues in TrPPFD.items():
             mtg.property('TrPPFD'+propname).update(propvalues)
-    if Zeta:
+    if not Zeta is None:
         for propname, propvalues in Zeta.items():
             mtg.property('Zeta'+propname).update(propvalues)
+    for proptablename, proptablevalues in properties.items():
+        for propname, propvalues in proptablevalues.items():
+            mtg.property(proptablename+propname).update(propvalues)
 
 
 def zeta(TrPPFD):
