@@ -20,7 +20,8 @@ import pandas
 from alinea.astk.sun_and_sky import sky_sources, sun_sources
 
 
-def get_light_sources(diffuseratio = 0.3, energy = 100000, date='2017-08-26', starthour = 7, endhour = 18):
+def get_light_sources(diffuseratio = 0.3, energy = 100000, date='2021-03-01', starthour = 7, endhour = 18):
+    from math import sin, radians
     def todate(hour = 12, date=date):
         return pandas.Timestamp(date+' '+str(hour)+':00', tz=localisation['timezone'])
     hours = pandas.date_range(start=todate(starthour),end=todate(endhour), freq="1H")
@@ -28,7 +29,7 @@ def get_light_sources(diffuseratio = 0.3, energy = 100000, date='2017-08-26', st
     skys = sky_sources(sky_type='uoc', irradiance=energy*diffuseratio, **localisation)
     sun_el, sun_az, sun_hei = suns
     sky_el, sky_az , sky_hei = skys
-    return (sun_az, sun_el, sun_hei), (sky_az, sky_el,sky_hei)
+    return (sun_az, sun_el, [energy*(1-diffuseratio)* sin(radians(el)) for hei,el in zip(sun_hei,sun_el)]), (sky_az, sky_el,sky_hei)
 
 def toCaribuScene(mangoscene, leaf_prop=leaf_prop, wood_prop=wood_prop, idshift=idshift, pattern=pattern, debug = True) :
     from alinea.caribu.CaribuScene import CaribuScene
@@ -50,6 +51,7 @@ def toCaribuScene(mangoscene, leaf_prop=leaf_prop, wood_prop=wood_prop, idshift=
 
 def caribu(scene, sun = None, sky = None, debug = True):
     from alinea.caribu.light import light_sources
+
     import time
     if debug:
         print('start caribu...')
@@ -64,6 +66,7 @@ def caribu(scene, sun = None, sky = None, debug = True):
         light += light_sources(sky_el, sky_az, sky_hei) #, orientation = north)
     if debug:
         print('... ',len(light),' sources.')
+    scene = toCaribuScene(scene,debug = debug)
     scene.setLight(light)
     if debug:
         print('Run caribu')
@@ -71,8 +74,8 @@ def caribu(scene, sun = None, sky = None, debug = True):
     raw, agg = scene.run(direct=True, infinite = False, split_face = True)
     if debug:
         print('made in', time.time() - t)
-    agg = agg['PAR']
-    agg['irradiance'] = agg['Ei']/energy
+    agg = agg['PAR' if 'PAR'in agg else 'default_band']
+    agg['irradiance'] = agg['Ei']
     del agg['Ei']
     import pandas as pd
     return pd.DataFrame(agg)
@@ -103,9 +106,16 @@ def light(scene, sun = None, sky = None, useplantgl = True, debug = True):
     else:
         return caribu(scene, sun, sky, debug)
 
-def set_light_to_mtg(mtg, lightprop):
-    for propname, propvalues in lightprop.items():
-        mtg.property(propname).update(propvalues)
+def extend_mtg_with_light(mtg, TrPPFD = None, Zeta = None, inplace=True):
+    if not inplace:
+        from copy import deepcopy
+        mtg = deepcopy(mtg)
+    if TrPPFD:
+        for propname, propvalues in TrPPFD.items():
+            mtg.property('TrPPFD'+propname).update(propvalues)
+    if Zeta:
+        for propname, propvalues in Zeta.items():
+            mtg.property('Zeta'+propname).update(propvalues)
 
 
 def zeta(TrPPFD):
@@ -115,20 +125,39 @@ def zeta(TrPPFD):
     d = 1.104
     return d * power((1-exp(-a*TrPPFD))/(1-exp(-a)), 1/b)
 
-def daily_light_estimation(scene, diffuseratio = 0.3, energy = 100000, date='2017-08-26', starthour = 7, endhour = 18, debug = True):
+def check_scene(scene):
+    from openalea.mtg import MTG
+    if isinstance(scene, MTG):
+        import mtgplot as mp
+        return mp.representation(scene, wood = False, leaves=True)
+    else:
+        return scene
+
+def daily_light_estimation(scene, diffuseratio = 0.3, energy = 100000, date='2021-03-01', starthour = 7, endhour = 18, debug = True):
     from pandas import concat
+    scene = check_scene(scene)
     sun, sky = get_light_sources(diffuseratio=diffuseratio, energy = energy, date=date, starthour = starthour, endhour = endhour)
-    skyvalues = light(scene, None, sky, debug = debug)['irradiance']
+    if sum(sky[2]) > 0:
+        skyvalues = light(scene, None, sky, debug = debug)['irradiance']
+    else:
+        skyvalues = None
     values = {}
     hour = starthour
     for sun_az, sun_el, sun_hei in zip(*sun):
-        values[str(hour)+'H'] = light(scene, ([sun_az], [sun_el], [sun_hei]), None, debug = debug)['irradiance']+skyvalues
+        if sun_hei > 0:
+            value = light(scene, ([sun_az], [sun_el], [sun_hei]), None, debug = debug)['irradiance']
+            if not skyvalues is None:
+                value += skyvalues
+        else:
+            value = skyvalues
+        values[str(hour)+'H'] = value
         hour += 1
     res = concat(values, axis=1)
     res.fillna(0)
     return res 
 
-def light_variables(scene, diffuseratio = 0.3, date='2017-08-26', starthour = 7, endhour = 18, debug = False):
+
+def light_variables(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, debug = False):
     # Compute 
     # TrPPFD_min : Mesure ponctuelle min sur la journée
     # Zeta_min : Mesure ponctuelle min sur la journée
@@ -146,3 +175,34 @@ def light_variables(scene, diffuseratio = 0.3, date='2017-08-26', starthour = 7,
     Zeta_min = zetavalues.min(axis=1)
     Zeta_12H = zetavalues['12H']
     return TrPPFD_min, Zeta_min, Zeta_12H
+
+def light_variables_bis(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, debug = False):
+    energy = 100000
+    lightestim = daily_light_estimation(scene, 
+                            diffuseratio = diffuseratio, 
+                            energy = energy, 
+                            date=date, 
+                            starthour = starthour, 
+                            endhour = endhour,
+                            debug = debug)/energy
+    TrPPFD_mean = lightestim.mean(axis=1)
+    TrPPFD_min = lightestim.min(axis=1)
+    zetavalues = zeta(lightestim)
+    Zeta_mean = zetavalues.mean(axis=1)
+    Zeta_min = zetavalues.min(axis=1)
+    Zeta_8H = zetavalues['8H']
+    return TrPPFD_mean, TrPPFD_min, Zeta_mean, Zeta_min, Zeta_8H
+
+def daily_light_variables(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, debug = False):
+    energy = 100000
+    TrPPFD = daily_light_estimation(scene, 
+                            diffuseratio = diffuseratio, 
+                            energy = energy, 
+                            date=date, 
+                            starthour = starthour, 
+                            endhour = endhour,
+                            debug = debug)/energy
+    Zeta = zeta(TrPPFD)
+    return TrPPFD, Zeta
+
+

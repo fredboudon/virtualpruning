@@ -30,6 +30,8 @@ def get_G3_mtg():
 
     return g
 
+GUScale = 3
+
 def is_gu_point(mtg, vid):
     """ A GU Point is a node in the graph that represent both a digitized point and a GU.
         Conversely, some point that mark the begining of a branch do not represent any GU."""
@@ -45,7 +47,14 @@ def is_terminal(mtg,vid):
     return mtg.nb_children(vid) == 0
 
 def get_all_gus(mtg):
-    return [vid for vid in mtg.vertices(scale=3) if is_gu_point(mtg, vid)]
+    return [vid for vid in mtg.vertices(scale=GUScale) if is_gu_point(mtg, vid)]
+
+def get_ordered_gus(mtg, preorder = True, root = None):
+    from openalea.mtg.traversal import pre_order2, post_order2
+    orderfunc = pre_order2 if preorder else post_order2
+    if root is None:
+        root = mtg.roots(scale=GUScale)[0]
+    return [root]+[vid for vid in orderfunc(mtg, root) if is_gu_point(mtg, vid)]
 
 def get_all_terminal_gus(mtg):
     return [vid for vid in mtg.vertices(scale=3) if is_gu_point(mtg, vid) and is_terminal(mtg,vid) ]
@@ -75,10 +84,6 @@ def get_gu_nb_leaf(mtg, vid):
     """ NbLeaf is stored in the top point """
     return mtg.property('NbLeaf').get(get_gu_top_point(mtg,vid),0)
 
-def get_gu_nb_leaf(mtg, vid):
-    """ NbLeaf is stored in the top point """
-    return mtg.property('NbLeaf').get(get_gu_top_point(mtg,vid),0)
-
 def get_gu_type(mtg, vid):
     """ NbLeaf is stored in the bottom point """
     return mtg.property('UnitType').get(get_gu_bottom_point(mtg,vid))
@@ -88,6 +93,9 @@ def get_gu_bottom_position(mtg, vid):
 
 def get_gu_top_position(mtg, vid):
     return mtg.property('Position')[get_gu_top_point(mtg,vid)]
+
+def get_gu_mean_position(mtg, vid):
+    return (mtg.property('Position')[get_gu_top_point(mtg,vid)]+mtg.property('Position')[get_gu_bottom_point(mtg,vid)])/2
 
 def set_gu_top_position(mtg, vid, value):
     mtg.property('Position')[get_gu_top_point(mtg,vid)] = value
@@ -107,24 +115,36 @@ def get_gu_depth(mtg, vid1, vid2):
     assert is_gu_point(mtg, vid1) and is_gu_point(mtg, vid2)
     return len([vid for vid in mtg.Path(vid1,vid2) if is_gu_point(mtg, vid)])-1
 
+def get_gu_terminal_min_depth(mtg, vid):
+    if is_terminal(mtg, vid) : return 0
+    return min([get_gu_depth(mtg, vid, desc) for desc in get_terminal_gus_from_ancestor(mtg, vid)])
+
 def get_gu_property(mtg, vid, propname, toppoint = True):
     return mtg.property(propname)[get_gu_top_point(mtg,vid) if toppoint else get_gu_bottom_point(mtg,vid)]
 
 def set_gu_property(mtg, vid, propname, value, toppoint = True):
     mtg.property(propname)[get_gu_top_point(mtg,vid) if toppoint else get_gu_bottom_point(mtg,vid)] = value
 
+def get_gu_top_positions(mtg):
+    return dict([(vid,get_gu_top_position(mtg,vid)) for vid in get_all_gus(mtg)])
+
+def get_gu_bottom_positions(mtg):
+    return dict([(vid,get_gu_bottom_position(mtg,vid)) for vid in get_all_gus(mtg)])
+
+def get_gu_mean_positions(mtg):
+    return dict([(vid,get_gu_mean_position(mtg,vid)) for vid in get_all_gus(mtg)])
 
 def was_previously_pruned(mtg, vid):
     return ('A' in mtg.property('Taille').get(vid,''))
 
 def get_parent(mtg, vid):
     assert not vid is None
-    parent = mtg.parent(vid)
-    if not is_gu_point(mtg, parent):
-        parent = mtg.parent(parent)
-    if not parent is None and not is_gu_point(mtg, parent):
-        raise ValueError(vid, parent)
-    return parent
+    vid = mtg.parent(vid)
+    while not vid is None and not is_gu_point(mtg, vid):
+        vid = mtg.parent(vid)
+    assert vid is None or is_gu_point(mtg, vid)
+    return vid
+
 
 def get_children(mtg, vid):
     assert not vid is None
@@ -161,7 +181,7 @@ def gu_recursive_property_from_terminal(mtg, nodeaxiom = lambda vid, childrenval
     from openalea.mtg.traversal import post_order2
     res = {}
     if root is None:
-        root = mtg.roots(scale=mtg.max_scale())[0]
+        root = mtg.roots(scale=3)[0]
     for vid in post_order2(mtg, root):
         if is_terminal(mtg, vid): 
             res[vid] = leafaxiom(vid) if callable(leafaxiom) else leafaxiom
@@ -176,7 +196,7 @@ def gu_recursive_property_from_root(mtg, nodeaxiom = lambda vid, parentvalue : p
     from openalea.mtg.traversal import pre_order2
     res = {}
     if root is None:
-        root = mtg.roots(scale=mtg.max_scale())[0]
+        root = mtg.roots(scale=3)[0]
     for vid in pre_order2(mtg, root):
         if get_parent(mtg, vid) is None: 
             res[vid] = rootaxiom(vid) if callable(rootaxiom) else rootaxiom
@@ -242,3 +262,15 @@ def volume(mtg, selectionratio = selectionratio):
     return (xmax-xmin)*(ymax-ymin)*(zmax-zmin)/ 1000000.
 
 ref_volume = 67.3 # 37.661114634371984
+
+def extend_mtg_with_organs(mtg):
+    from copy import deepcopy
+    mtg = deepcopy(mtg)
+    for vid in get_ordered_gus(mtg):
+        nvid = mtg.add_component(vid, label='W', edge_type=mtg.edge_type(vid))
+        for lid in range(get_gu_nb_leaf(mtg, vid)):
+            mtg.add_child(nvid,label='L', edge_type='+')
+    return mtg
+
+def get_all_leaves(mtg):
+    return [vid for vid in mtg.vertices(scale=4) if mtg.label(vid) == 'L']
