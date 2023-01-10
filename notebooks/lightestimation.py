@@ -159,7 +159,7 @@ def daily_light_estimation(scene, diffuseratio = 0.3, energy = 100000, date='202
     res.fillna(0)
     return res 
 
-def light_variables(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, debug = False):
+def light_variables_mortality(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, debug = False):
     # Compute 
     # TrPPFD_min : Mesure ponctuelle min sur la journée
     # Zeta_min : Mesure ponctuelle min sur la journée
@@ -172,13 +172,13 @@ def light_variables(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7,
                             starthour = starthour, 
                             endhour = endhour,
                             debug = debug)/energy
-    TrPPFD_min = lightestim.min(axis=1)
+    #TrPPFD_min = lightestim.min(axis=1)
     zetavalues = zeta(lightestim)
     Zeta_min = zetavalues.min(axis=1)
-    Zeta_12H = zetavalues['12H']
-    return TrPPFD_min, Zeta_min, Zeta_12H
+    #Zeta_12H = zetavalues['12H']
+    return Zeta_min
 
-def light_variables_bis(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, debug = False):
+def light_variables_regrowth(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, debug = False):
     energy = 100000
     lightestim = daily_light_estimation(scene, 
                             diffuseratio = diffuseratio, 
@@ -191,9 +191,9 @@ def light_variables_bis(scene, diffuseratio = 0.3, date='2021-03-01', starthour 
     TrPPFD_min = lightestim.min(axis=1)
     zetavalues = zeta(lightestim)
     Zeta_mean = zetavalues.mean(axis=1)
-    Zeta_min = zetavalues.min(axis=1)
+    #Zeta_min = zetavalues.min(axis=1)
     Zeta_8H = zetavalues['8H']
-    return TrPPFD_mean, TrPPFD_min, Zeta_mean, Zeta_min, Zeta_8H
+    return TrPPFD_mean, TrPPFD_min, Zeta_mean, Zeta_8H
 
 def daily_light_variables(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, debug = False):
     energy = 100000

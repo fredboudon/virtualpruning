@@ -1,13 +1,10 @@
-import sys
-from math import exp, radians
-
 from pruning import T0, T1, T2, T3
 from mangoG3 import eApical, eLateral
 
 from randomgeneration import *
 
 def lateral_directions(maindir, angle, nb):
-    from math import pi
+    from math import pi, radians
     from openalea.plantgl.all import direction, Matrix3
     assert nb >= 1
     rotdir = direction(maindir.anOrthogonalVector())

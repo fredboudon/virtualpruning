@@ -1,4 +1,7 @@
+from math import exp
+import numpy as np
 from numpy.random import binomial, poisson, uniform, normal
+import sys
 
 def binomial_proba_from_latent(latent):
     return exp(latent)/(1+exp(latent))

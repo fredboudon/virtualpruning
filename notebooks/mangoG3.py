@@ -181,7 +181,7 @@ def gu_recursive_property_from_terminal(mtg, nodeaxiom = lambda vid, childrenval
     from openalea.mtg.traversal import post_order2
     res = {}
     if root is None:
-        root = mtg.roots(scale=3)[0]
+        root = mtg.roots(scale=GUScale)[0]
     for vid in post_order2(mtg, root):
         if is_terminal(mtg, vid): 
             res[vid] = leafaxiom(vid) if callable(leafaxiom) else leafaxiom
@@ -196,7 +196,7 @@ def gu_recursive_property_from_root(mtg, nodeaxiom = lambda vid, parentvalue : p
     from openalea.mtg.traversal import pre_order2
     res = {}
     if root is None:
-        root = mtg.roots(scale=3)[0]
+        root = mtg.roots(scale=GUScale)[0]
     for vid in pre_order2(mtg, root):
         if get_parent(mtg, vid) is None: 
             res[vid] = rootaxiom(vid) if callable(rootaxiom) else rootaxiom
@@ -271,6 +271,3 @@ def extend_mtg_with_organs(mtg):
         for lid in range(get_gu_nb_leaf(mtg, vid)):
             mtg.add_child(nvid,label='L', edge_type='+')
     return mtg
-
-def get_all_leaves(mtg):
-    return [vid for vid in mtg.vertices(scale=4) if mtg.label(vid) == 'L']
