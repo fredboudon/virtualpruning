@@ -225,4 +225,3 @@ def leaf_death(mtg, vid):
         # Soustraire la proportion d'UC qui chute
         return # retourner la maquette sans les UCs mortes pour lancer les lois de débourrement
 
-## Etape finale, combiner tout les processus ? 

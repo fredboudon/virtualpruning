@@ -21,6 +21,8 @@ light_source {{
 background {{ color rgb <1,1,1> }}
 #end // __camera_definition__
 '''
+
+
 import mtgplot as mp
 from importlib import reload
 reload(mp)
@@ -98,7 +100,7 @@ def generate_from_representation(scene, size = 400, camheight = 120, xpos = 25, 
         shutil.rmtree('povray')
     return img
 
-def generate(mtg, colorizer = mp.BlackColoring, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, leaves = True, wood = True, gc = True, debug = False, todate=None):
+def generate(mtg, colorizer = mp.BlackColoring, size = 400, camheight = 120, xpos = 25, ypos = 30, antialiasing = False, leaves = True, wood = True, gc = True, debug = False, todate=None):
     sc = mp.representation(mtg, colorizer=colorizer, leaves=leaves, wood = wood, gc=gc, todate=todate)
     return generate_from_representation(sc, size, camheight=camheight, xpos = xpos, ypos = ypos, antialiasing = antialiasing, debug=debug)
 
@@ -107,10 +109,10 @@ def nbwhite(img):
     npimg = np.asarray(img)
     return npimg[np.where(npimg>0)].sum()
 
-def gap_fraction(mtg, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, debug = False, todate=None):
+def gap_fraction(mtg, size = 400, camheight = 120, xpos = 25, ypos = 30, antialiasing = False, debug = False, todate=None):
     return gap_fraction_from_scene(mp.representation(mtg, colorizer=mp.BlackColoring, leaves=True, gc=True, todate=todate), size=size, camheight=camheight, xpos = xpos, ypos = ypos, antialiasing = antialiasing, debug=debug)
 
-def gap_fraction_from_scene(scene, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, debug = False):
+def gap_fraction_from_scene(scene, size = 400, camheight = 120, xpos = 25, ypos = 30, antialiasing = False, debug = False):
     from openalea.plantgl.all import Scene
     nbpix = nbwhite(generate_from_representation(scene, size=size, camheight=camheight, xpos = xpos, ypos = ypos, antialiasing = antialiasing, debug=debug))
     if size == 800:
@@ -128,7 +130,9 @@ def gap_fraction_from_scene(scene, size = 400, camheight = 150, xpos = 25, ypos 
         print(nbpix,refwhite)
     return nbpix/refwhite
 
-def gapfraction_dynamic(mtg, size = 400, camheight = 150, xpos = 25, ypos = 30, antialiasing = False, debug = False):
+def gapfraction_dynamic(mtg, size = 400, camheight = 120, xpos = 25, ypos = 30, antialiasing = False, debug = False):
     import numpy as np
     dates = sorted(np.unique(list(mtg.property('BurstDate').values())))
+
     return [(d,gap_fraction(mtg, size=size, camheight=camheight, xpos = xpos, ypos = ypos, antialiasing = antialiasing, debug=debug, todate=d)) for d in dates]
+
