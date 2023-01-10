@@ -47,6 +47,7 @@ def lateral_directions(maindir, angle, nb):
 
 from mangoG3 import *
 from pruning import n1, n2, n3, T0, T1, T2, T3
+T0, T1, T2, T3 = "T0", "T1", "T2", "T3"
 
 def create_daughters(mtg, vid, apical, nblateral, burstdate, totalleafarea = None,  individualleafarea = None):
     parentdirection = get_gu_normed_direction(mtg, vid)
@@ -138,12 +139,13 @@ def total_leafarea_pruned(intensity, diameter):
     """ Total leaf area generated from a pruned gu in dm2 """
     intercept = - 5.83
     # En facteur continu pour intensity
-    sd = 3.12
-    minval= 5 
-    maxval= 30
+    sd = 7.47
+    minval= 0.1 
+    maxval= 44
     probavalue = intercept + (1.03) * diameter + (9.47) * intensity
     
     return  normal_realization(probavalue, sd, maxval, minval) 
+
 ## Pour l'instant j'ai mis des coefs 
 # adaptés à une distirbution normale mais 
 # les données correspondent plutôt à une distribution GAMMA, c'est possible d'apater ?
@@ -188,10 +190,10 @@ def individual_leafarea_pruned(intensity):
 def total_leafarea_unpruned(intensity):
     """ Total leaf area generated from an unpruned gu in dm2 """
     # Intensity en facteur continu
-    intercept = 4.16
-    minval = 4
-    maxval = 8
-    sd = 2
+    intercept = 4.18
+    minval = 0.16
+    maxval = 20
+    sd = 4.1
     probavalue = intercept + (6.86) * intensity
 
     
@@ -213,7 +215,7 @@ def individual_leafarea_unpruned(intensity):
     probas = { T0 : (33.3,13.4),
                T1 : (39.9,16.9), 
                T2 : (43.2,11.8),
-               T3 : (47,1,16.9) }
+               T3 : (47.1,16.9) }
     probavalue, sd = probas[intensity]
     minval=6
     maxval=150
