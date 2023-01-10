@@ -203,7 +203,8 @@ def representation(mtg, focus = None, colorizer = ClassColoring(), leaves = Fals
                     TopDiameter=TopDiameter, 
                     YY = yy, 
                     ZZ = zz, 
-                    origin=posproperty[mtg.roots(3)[0]]
+                    origin=posproperty[mtg.roots(3)[0]],
+                    scale=3
                     )
 
     #diameters = pf.compute_diameters()
@@ -274,7 +275,7 @@ def representation(mtg, focus = None, colorizer = ClassColoring(), leaves = Fals
                     colortodraw = colorizer(turtle, v)
                     if colortodraw is None: colortodraw = True
                 if g.edge_type(v) == '<':
-                    nbleaf = mtg.property('NbLeaf').get(v,0)
+                    nbleaf = g.property('NbLeaf').get(v,0)
                     if not colortodraw :
                         turtle.move(pt)
                         turtle.setWidth(radius)                        
@@ -287,19 +288,28 @@ def representation(mtg, focus = None, colorizer = ClassColoring(), leaves = Fals
                             turtle.setWidth(radius)
                     else:
                         turtle.pinpoint(pt)
-                        parent = mtg.parent(v)
+                        parent = g.parent(v)
                         parentpos = pf.points[parent]
                         length = norm(pt-parentpos)
                         seglength = length/nbleaf
                         parentradius = diameters.get(parent)
                         segdiaminc = (radius-parentradius)/nbleaf
+                        if g.max_scale() == 4:
+                            leafids = [vid for vid in g.components(v) if g.label(vid) == 'L']
+                            assert len(leafids) == nbleaf
+                        else:
+                            leafids = None
                         for i in range(nbleaf):
                             if wood:
                                 turtle.F(seglength,parentradius+segdiaminc*(i+1))
                             else:
                                 turtle.f(seglength)
                             turtle.rollR(144)
-                            turtle.surface('leaf', gauss(*leaf_length_distrib[mtg.edge_type(mtg.parent(v))]))
+                            turtle.push()
+                            if leafids:
+                                turtle.setId(leafids[i])
+                            turtle.surface('leaf', gauss(*leaf_length_distrib[g.edge_type(g.parent(v))]))
+                            turtle.pop()
                             #leaf(turtle, gauss(*leaf_length_distrib[mtg.edge_type(mtg.parent(v))]) )
                         turtle.setWidth(radius)
 
