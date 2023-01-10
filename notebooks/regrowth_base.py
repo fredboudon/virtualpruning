@@ -1,49 +1,10 @@
-from numpy.random import binomial, poisson, uniform, normal
 import sys
 from math import exp, radians
 
 from pruning import T0, T1, T2, T3
 from mangoG3 import eApical, eLateral
 
-
-def binomial_proba_from_latent(latent):
-    return exp(latent)/(1+exp(latent))
-
-def binomial_proba(intercept, coefs, factors):
-    latent = intercept + np.array(np.array(coefs) * np.array(factors)).sum()
-    return binomial_proba_from_latent(latent)
-
-def binomial_realization(proba):
-    return bool( binomial(1,proba) )
-
-def poisson_proba_from_latent(latent):
-    return exp(latent)
-
-def poisson_proba(intercept, coefs, factors):
-    latent = intercept + np.array(np.array(coefs) * np.array(factors)).sum()
-    return poisson_proba_from_latent(latent)
-
-def poisson_realization(proba, maxval = sys.maxsize, minval = 0):
-    assert maxval > minval
-    val = int( poisson(proba, 1) )
-    count = 0
-    while (val < minval) or (val > maxval):
-        count += 1
-        if count >= 1000:
-            raise ValueError(proba, maxval, minval)
-        val = int( poisson(proba, 1) )
-    return val
-
-def normal_realization(mean, sd, maxval = sys.float_info.max, minval = sys.float_info.min):
-    assert maxval > minval
-    val = normal(mean, sd)
-    count = 0
-    while (val < minval) or (val > maxval):
-        count += 1
-        if count >= 1000:
-            raise ValueError(mean, sd, maxval, minval, val)
-        val = normal(mean, sd)
-    return val
+from randomgeneration import *
 
 def lateral_directions(maindir, angle, nb):
     from math import pi
@@ -118,7 +79,7 @@ def gu_nb_leaf(position):
     return normal_realization(*leaf_nb_distrib[position])
 
 
-def total_leafarea_pruned(intensity, diameter):
+def total_leafarea_pruned(diameter):
     """ Total leaf area generated from a pruned gu in dm2 """
     probas = (0,0.6351646,4.978825)
     intercept, slope,sd = probas
@@ -155,6 +116,7 @@ def total_leafarea_unpruned(intensity, diameter, apical_bud):
 
 def individual_leafarea_unpruned(intensity):
     """ Individual leaf area of GU borned from an unpruned GU in dm2 """
+    assert intensity in [T0,T1,T3]
     probas = { T0 : (37.9,18.7), 
                T1 : (49.6,26.4), 
                T3 : (70.4,29.03) }
