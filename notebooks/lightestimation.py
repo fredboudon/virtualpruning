@@ -20,16 +20,18 @@ import pandas
 from alinea.astk.sun_and_sky import sky_sources, sun_sources
 
 
-def get_light_sources(diffuseratio = 0.3, energy = 100000, date='2021-03-01', starthour = 7, endhour = 18):
+def get_light_sources(diffuseratio = 0.3, energy = 100000, date='2021-03-01', starthour = 7, endhour = 18, skydiscretization=46):
     from math import sin, radians
     def todate(hour = 12, date=date):
         return pandas.Timestamp(date+' '+str(hour)+':00', tz=localisation['timezone'])
     hours = pandas.date_range(start=todate(starthour),end=todate(endhour), freq="1H")
     suns = sun_sources(energy*(1-diffuseratio), dates=hours, **localisation)
-    skys = sky_sources(sky_type='uoc', irradiance=energy*diffuseratio, turtle_sectors=46, **localisation)
+    skys = sky_sources(sky_type='uoc', irradiance=energy*diffuseratio, turtle_sectors=skydiscretization, **localisation)
     sun_el, sun_az, sun_hei = suns
     sky_el, sky_az , sky_hei = skys
-    return (sun_az, sun_el, [energy*(1-diffuseratio)* sin(radians(el)) for hei,el in zip(sun_hei,sun_el)]), (sky_az, sky_el,sky_hei)
+    # every sun position should have the direct energy value
+    return ((sun_az, sun_el, [energy*(1-diffuseratio) for hei,el in zip(sun_hei,sun_el)]),  # * sin(radians(el))
+            (sky_az, sky_el,sky_hei))
 
 def toCaribuScene(mangoscene, leaf_prop=leaf_prop, wood_prop=wood_prop, idshift=idshift, pattern=pattern, debug = True) :
     from alinea.caribu.CaribuScene import CaribuScene
@@ -51,6 +53,7 @@ def toCaribuScene(mangoscene, leaf_prop=leaf_prop, wood_prop=wood_prop, idshift=
 
 def caribu(scene, sun = None, sky = None, debug = True):
     from alinea.caribu.light import light_sources
+    from openalea.plantgl.scenegraph import Scene
 
     import time
     if debug:
@@ -66,7 +69,8 @@ def caribu(scene, sun = None, sky = None, debug = True):
         light += light_sources(sky_el, sky_az, sky_hei) #, orientation = north)
     if debug:
         print('... ',len(light),' sources.')
-    scene = toCaribuScene(scene,debug = debug)
+    if isinstance(scene, Scene):
+        scene = toCaribuScene(scene,debug = debug)
     scene.setLight(light)
     if debug:
         print('Run caribu')
@@ -136,10 +140,10 @@ def check_scene(scene):
     else:
         return scene
 
-def daily_light_estimation(scene, diffuseratio = 0.3, energy = 100000, date='2021-03-01', starthour = 7, endhour = 18, debug = True):
+def daily_light_estimation(scene, diffuseratio = 0.3, energy = 100000, date='2021-03-01', starthour = 7, endhour = 18, skydiscretization = 46, debug = True):
     from pandas import concat
     scene = check_scene(scene)
-    sun, sky = get_light_sources(diffuseratio=diffuseratio, energy = energy, date=date, starthour = starthour, endhour = endhour)
+    sun, sky = get_light_sources(diffuseratio=diffuseratio, energy = energy, date=date, starthour = starthour, endhour = endhour, skydiscretization=skydiscretization)
     if sum(sky[2]) > 0:
         skyvalues = light(scene, None, sky, debug = debug)['irradiance']
     else:
@@ -159,43 +163,7 @@ def daily_light_estimation(scene, diffuseratio = 0.3, energy = 100000, date='202
     res.fillna(0)
     return res 
 
-def light_variables_mortality(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, debug = False):
-    # Compute 
-    # TrPPFD_min : Mesure ponctuelle min sur la journée
-    # Zeta_min : Mesure ponctuelle min sur la journée
-    # Zeta_12H : Mesure ponctuelle a 12h
-    energy = 100000
-    lightestim = daily_light_estimation(scene, 
-                            diffuseratio = diffuseratio, 
-                            energy = energy, 
-                            date=date, 
-                            starthour = starthour, 
-                            endhour = endhour,
-                            debug = debug)/energy
-    #TrPPFD_min = lightestim.min(axis=1)
-    zetavalues = zeta(lightestim)
-    Zeta_min = zetavalues.min(axis=1)
-    #Zeta_12H = zetavalues['12H']
-    return Zeta_min
-
-def light_variables_regrowth(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, debug = False):
-    energy = 100000
-    lightestim = daily_light_estimation(scene, 
-                            diffuseratio = diffuseratio, 
-                            energy = energy, 
-                            date=date, 
-                            starthour = starthour, 
-                            endhour = endhour,
-                            debug = debug)/energy
-    TrPPFD_mean = lightestim.mean(axis=1)
-    TrPPFD_min = lightestim.min(axis=1)
-    zetavalues = zeta(lightestim)
-    Zeta_mean = zetavalues.mean(axis=1)
-    #Zeta_min = zetavalues.min(axis=1)
-    Zeta_8H = zetavalues['8H']
-    return TrPPFD_mean, TrPPFD_min, Zeta_mean, Zeta_8H
-
-def daily_light_variables(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, debug = False):
+def daily_light_variables(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, skydiscretization = 46, debug = False):
     energy = 100000
     TrPPFD = daily_light_estimation(scene, 
                             diffuseratio = diffuseratio, 
@@ -203,8 +171,42 @@ def daily_light_variables(scene, diffuseratio = 0.3, date='2021-03-01', starthou
                             date=date, 
                             starthour = starthour, 
                             endhour = endhour,
+                            skydiscretization=skydiscretization,
                             debug = debug)/energy
     Zeta = zeta(TrPPFD)
     return TrPPFD, Zeta
+
+def light_variables_mortality(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, skydiscretization = 46, debug = False):
+    # Compute 
+    # TrPPFD_min : Mesure ponctuelle min sur la journée
+    # Zeta_min : Mesure ponctuelle min sur la journée
+    # Zeta_12H : Mesure ponctuelle a 12h
+    TrPPFD, Zeta = daily_light_variables(scene, 
+                            diffuseratio = diffuseratio, 
+                            energy = energy, 
+                            date=date, 
+                            starthour = starthour, 
+                            endhour = endhour,
+                            skydiscretization=skydiscretization,
+                            debug = debug)
+    Zeta_min = Zeta.min(axis=1)
+    return Zeta_min
+
+def light_variables_regrowth(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, skydiscretization = 46, debug = False):
+    TrPPFD, Zeta = daily_light_variables(scene, 
+                            diffuseratio = diffuseratio, 
+                            energy = energy, 
+                            date=date, 
+                            starthour = starthour, 
+                            endhour = endhour,
+                            skydiscretization=skydiscretization,
+                            debug = debug)
+    TrPPFD_mean = TrPPFD.mean(axis=1)
+    TrPPFD_min = TrPPFD.min(axis=1)
+    Zeta_mean = Zeta.mean(axis=1)
+    Zeta_8H = Zeta['8H']
+    return TrPPFD_mean, TrPPFD_min, Zeta_mean, Zeta_8H
+
+
 
 
