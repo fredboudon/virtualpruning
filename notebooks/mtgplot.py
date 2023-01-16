@@ -173,7 +173,14 @@ axis, north = (0,0,1), -(90-53)
 def rotate_scene(sc, axis = axis, angle = north):
     return Scene([Shape(AxisRotated(axis,angle,sh.geometry),sh.appearance,sh.id,sh.parentId) for sh in sc])
 
-def representation(mtg, focus = None, colorizer = ClassColoring(), leaves = False, wood = True, gc = True, fieldoriented = True, todate = None):
+def representation(mtg, focus = None, 
+                        colorizer = ClassColoring(), 
+                        leaves = False, 
+                        wood = True, 
+                        gc = True, 
+                        fieldoriented = True, 
+                        leafreorientation = 30,
+                        todate = None):
     import inspect
     if inspect.isclass(colorizer):
         colorizer = colorizer()
@@ -306,6 +313,11 @@ def representation(mtg, focus = None, colorizer = ClassColoring(), leaves = Fals
                                 turtle.f(seglength)
                             turtle.rollR(144)
                             turtle.push()
+                            if leafreorientation:
+                                turtle.down(90)
+                                turtle.rollToVert()
+                                turtle.rollToHorizontal()
+                                turtle.up(90-leafreorientation)
                             if leafids:
                                 turtle.setId(leafids[i])
                             turtle.surface('leaf', gauss(*leaf_length_distrib[g.edge_type(g.parent(v))]))

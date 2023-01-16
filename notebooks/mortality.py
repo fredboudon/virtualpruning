@@ -72,6 +72,13 @@ def gu_mortalities_post_pruning(mtg, Zeta_min = None, intensity = None, inplace 
        from pruning import continuous_intensity_from_pruned
        intensity = continuous_intensity_from_pruned(mtg)
 
+   if Zeta_min is None:
+        from lightestimation import light_variables_mortality
+        from mtgplot import representation
+        prunedrepr = representation(mtg, wood = False, leaves=True)
+        Zeta_min = light_variables_mortality(prunedrepr)
+
+
    if not inplace:
         from copy import deepcopy
         newmtg = deepcopy(mtg)

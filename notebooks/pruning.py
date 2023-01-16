@@ -1,5 +1,6 @@
 from random import randint
 from mangoG3 import *
+from math import ceil
 
 meandepth = lambda depths : int(round(np.mean(depths)))
 maxoccurence = lambda depths :max(depths,key=depths.count)
@@ -12,7 +13,7 @@ diameterrange = { n1 : (3.15, 17.20) , n2 : (4.32, 19.2), n3 : (5.5, 22.09)}
 # Threshold are expressed in kg.m-3
 T1threshold = 0.20
 T2threshold = 0.40
-T3threshold = 0.60
+T3threshold = 0.70
 
 T0, T1, T2, T3 = "T0", "T1", "T2", "T3"
 
@@ -65,7 +66,7 @@ def tag_pruning(mtg, listidpruned):
             prunedproperty[p] = order         
     return prunedproperty, removedproperty
 
-def tag_pruned_nodes(mtg, listidpruned):
+def tag_pruned_nodes(listidpruned):
     prunedproperty = {}
     for order, pruneds in listidpruned.items():
         for vid in pruneds:
@@ -109,8 +110,24 @@ def plot_pruning(mtg, listidpruned = None, leaves = True, onlypruning = False, c
     sc = mp.representation(mtg, colorizer=PruningColoring(onlypruning), gc = False, leaves=leaves)
     return mp.display(sc)
 
+refposition = (-12, 22, 122) # (25,30,120)
 
-def define_pruning(mtg, nbcuts, potential_cutpoints = None):
+def is_summital(mtg, gu, summitalradius = 100 ):
+    toppos = get_gu_top_position(mtg,gu)
+    if toppos[2] <= refposition[2] : return False
+    return norm((toppos[0]-refposition[0],toppos[1]-refposition[1])) < summitalradius 
+
+def summital_gus(mtg, gus, summitalradius = 100):
+    return [gu for gu in gus if is_summital(mtg, gu, summitalradius)]
+
+def check_summital_ratio(mtg, gus = None, summitalradius = 100):
+    if gus is None:
+        gus = list(mtg.property('pruned').keys())
+    else:
+        gus = list(tag_pruned_nodes(gus).keys())
+    return len(summital_gus(mtg,gus,summitalradius))/len(gus)
+
+def define_pruning(mtg, nbcuts, potential_cutpoints = None, summitratio = None, summitalradius = 100):
     """ Determine at which point the pruning should occurs.
         :params nbcuts: int or tuple. Nb of cuts. 
         If a single value is given, it applies this number of cut for n1, n2 et n3. 
@@ -136,7 +153,23 @@ def define_pruning(mtg, nbcuts, potential_cutpoints = None):
                 raise ValueError('Cannot make so many cuts for n%i: %i. Maximum is %i.' %(order, nbcuts[order-1], len(nis)))
             nblcuts = 0
             nis = list(set(nis).difference(removedgus))
-            np.random.shuffle(nis)
+            if summitratio:
+                summitnis = summital_gus(mtg, nis, summitalradius)
+                np.random.shuffle(summitnis)
+                nbcutsummit = ceil(nbcuts[order-1]*summitratio)
+
+                selectedsummit = summitnis[:nbcutsummit]
+                notselectedsummit = summitnis[nbcutsummit:]
+
+                lnis = list(set(nis).difference(summitnis))
+                np.random.shuffle(lnis)
+                selectednotsummit = lnis[:nbcuts[order-1]-nbcutsummit]
+                notselectednotsummit = lnis[nbcuts[order-1]-nbcutsummit:]
+                rest = notselectedsummit+notselectednotsummit
+                np.random.shuffle(rest)
+                nis = selectedsummit+selectednotsummit+rest
+            else:
+                np.random.shuffle(nis)
             for ni in nis:
                 lremoved = set(get_descendants_gus_from_ancestor(mtg, ni))
                 lremoved.remove(ni)
@@ -157,7 +190,7 @@ def apply_pruning(mtg, listprunedids, inplace = False):
         from copy import deepcopy
         mtg = deepcopy(mtg)
     mtg.property('pruned').clear()
-    mtg.property('pruned').update(tag_pruned_nodes(mtg, listprunedids))
+    mtg.property('pruned').update(tag_pruned_nodes(listprunedids))
     pnames = mtg.property_names()
     for order, prunedids in listprunedids.items():
         for pid in prunedids:
@@ -173,8 +206,8 @@ def apply_pruning(mtg, listprunedids, inplace = False):
                 raise ValueError(pid, mtg.children(pid))
     return mtg
 
-def prune(mtg, nbcuts = 20, potential_cutpoints = None, inplace = False):
-    listidpruned = define_pruning(mtg, nbcuts, potential_cutpoints)
+def prune(mtg, nbcuts = 20, potential_cutpoints = None, summitratio = None, summitalradius = 100, inplace = False):
+    listidpruned = define_pruning(mtg, nbcuts, potential_cutpoints, summitratio, summitalradius)
     return apply_pruning(mtg, listidpruned, inplace)
 
 

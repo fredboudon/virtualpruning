@@ -26,7 +26,7 @@ def get_light_sources(diffuseratio = 0.3, energy = 100000, date='2021-03-01', st
         return pandas.Timestamp(date+' '+str(hour)+':00', tz=localisation['timezone'])
     hours = pandas.date_range(start=todate(starthour),end=todate(endhour), freq="1H")
     suns = sun_sources(energy*(1-diffuseratio), dates=hours, **localisation)
-    skys = sky_sources(sky_type='uoc', irradiance=energy*diffuseratio, **localisation)
+    skys = sky_sources(sky_type='uoc', irradiance=energy*diffuseratio, turtle_sectors=46, **localisation)
     sun_el, sun_az, sun_hei = suns
     sky_el, sky_az , sky_hei = skys
     return (sun_az, sun_el, [energy*(1-diffuseratio)* sin(radians(el)) for hei,el in zip(sun_hei,sun_el)]), (sky_az, sky_el,sky_hei)

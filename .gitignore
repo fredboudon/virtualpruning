@@ -88,3 +88,5 @@ build-cmake
 .DS_Store
 notebooks/config.cfg
 Anaconda Prompt (miniconda3).lnk
+imagegf/
+backup/
