@@ -75,6 +75,80 @@ def gu_nb_leaf(position):
     leaf_nb_distrib = { eApical  : ( 0.59, 5.5), eLateral : ( 0.62, 0.36) }
     return normal_realization(*leaf_nb_distrib[position])
 
+## Proposition modèle pour générer la longueur d'une UC fille ###########################################
+def gu_length_unpruned(position):
+    """ GU daugther length """
+    probas = { A : (6.31, 2.95),
+               L : (4.61, 2.15)}
+
+    probavalue, sd = probas[position]
+    minval = 0.1 
+    maxval = 18.50
+    return normal_realization(probavalue, sd, maxval, minval)
+
+def gu_length_pruned(severity):
+    """ GU daugther length """
+    probas = { n1 : (8.62, 4.15),
+               n2 : (10.15, 4.55),
+               n3 : (11.74, 4.89) }
+    probavalue, sd = probas[severity]
+    minval = 0.1 
+    maxval = 28.50
+    return normal_realization(probavalue, sd, maxval, minval)
+
+## Proposition modèle pour générer le nombre de feuilles d'une UC fille ##############################
+
+def gu_nb_leaf_unpruned(length, position):
+    """ GU daugther number of leaf """
+    intercept = 4.44
+    sd = 2.5
+    minval= 0 
+    maxval= 18
+    Coef_position = { A : 0.091, 
+                      L : 0.198 }
+    probavalue = intercept + (0.61) * length + Coef_position[position] 
+    return normal_realization(probavalue, sd, maxval, minval)
+
+def gu_nb_leaf_pruned(length, severity):
+    """ GU daugther number of leaf """
+    intercept = 2.65
+    sd = 3.29
+    minval= 0 
+    maxval= 17
+    Coef_severity = { n1 : 7.59, 
+                      n2 : 7.38,
+                      n3 : 6.89 }
+    probavalue = intercept + (0.46) * length + Coef_severity[severity] 
+    return normal_realization(probavalue, sd, maxval, minval)
+
+## Proposition modèle pour générer la surface individuelle de feuille pour une UC fille ##############################
+def gu_leaf_area_unpruned(intensity, position):
+    """ GU daugther number of leaf """
+    intercept = 38.41
+    sd = 20
+    minval= 4.88
+    maxval= 111.16
+    
+    Coef_position = { A : 48.95, 
+                      L : 32.37 }
+        
+    probavalue = intercept + (42.91) * intensity + Coef_position[position] 
+    return normal_realization(probavalue, sd, maxval, minval)
+
+def gu_leaf_area_pruned(intensity, severity):
+    """ GU daugther number of leaf """
+    intercept = 28.68
+    sd = 15
+    minval= 4.44
+    maxval= 115.75
+
+    Coef_severity = { n1 : 39.47, 
+                      n2 : 40.82,
+                      n3 : 42.93 }
+        
+    probavalue = intercept + (30.45) * intensity + Coef_severity[severity] 
+    return normal_realization(probavalue, sd, maxval, minval)
+
 
 ############################################################### Mise à jour 
 # def total_leafarea_pruned(intensity, diameter):
@@ -86,16 +160,16 @@ def gu_nb_leaf(position):
 #    maxval=28
 #    return  normal_realization(probavalue, sd, maxval, minval)
 
-def total_leafarea_pruned(intensity, diameter):
-    """ Total leaf area generated from a pruned gu in dm2 """
-    intercept = - 5.83
-    # En facteur continu pour intensity
-    sd = 7.47
-    minval= 0.1 
-    maxval= 44
-    probavalue = intercept + (1.03) * diameter + (9.47) * intensity
-    
-    return  normal_realization(probavalue, sd, maxval, minval) 
+#def total_leafarea_pruned(intensity, diameter):
+#    """ Total leaf area generated from a pruned gu in dm2 """
+#    intercept = - 5.83
+#    # En facteur continu pour intensity
+#    sd = 7.47
+#    minval= 0.1 
+#    maxval= 44
+#    probavalue = intercept + (1.03) * diameter + (9.47) * intensity
+#    
+#    return  normal_realization(probavalue, sd, maxval, minval) 
 
 ## Pour l'instant j'ai mis des coefs 
 # adaptés à une distirbution normale mais 
@@ -110,15 +184,15 @@ def total_leafarea_pruned(intensity, diameter):
 #    maxval=150
 #    return  normal_realization(probavalue, sd, maxval, minval)/100.
 
-def individual_leafarea_pruned(intensity):
-    """ Individual leaf area of GU borned from a pruned GU in dm2 """
-    probas = { T1 : (37.46, 18.16),
-               T2 : (39.43, 19.46),
-               T3 : (46.32, 14.96) }
-    probavalue, sd = probas[intensity]
-    minval = 6 
-    maxval = 150
-    return  normal_realization(probavalue, sd, maxval, minval)/100.
+#def individual_leafarea_pruned(intensity):
+#    """ Individual leaf area of GU borned from a pruned GU in dm2 """
+#    probas = { T1 : (37.46, 18.16),
+#               T2 : (39.43, 19.46),
+#               T3 : (46.32, 14.96) }
+#    probavalue, sd = probas[intensity]
+#    minval = 6 
+#    maxval = 150
+#    return  normal_realization(probavalue, sd, maxval, minval)/100.
 
 ########################################################################### 
 #def total_leafarea_unpruned(intensity, diameter, apical_bud):
@@ -138,17 +212,17 @@ def individual_leafarea_pruned(intensity):
 #    maxval=20
 #    return  normal_realization(probavalue, sd, maxval, minval)
 
-def total_leafarea_unpruned(intensity):
-    """ Total leaf area generated from an unpruned gu in dm2 """
-    # Intensity en facteur continu
-    intercept = 4.18
-    minval = 0.16
-    maxval = 20
-    sd = 4.1
-    probavalue = intercept + (6.86) * intensity
+#def total_leafarea_unpruned(intensity):
+#    """ Total leaf area generated from an unpruned gu in dm2 """
+#    # Intensity en facteur continu
+#    intercept = 4.18
+#    minval = 0.16
+#    maxval = 20
+#    sd = 4.1
+#    probavalue = intercept + (6.86) * intensity
 
     
-    return  normal_realization(probavalue, sd, maxval, minval) 
+#    return  normal_realization(probavalue, sd, maxval, minval) 
 # Adaptable pour une loi de GAMMA ?
 
 #def individual_leafarea_unpruned(intensity):
@@ -161,16 +235,16 @@ def total_leafarea_unpruned(intensity):
 #    maxval=150
 #    return  normal_realization(probavalue, sd, maxval, minval)/100.
 
-def individual_leafarea_unpruned(intensity):
-    """ Individual leaf area of GU borned from an unpruned GU in dm2 """
-    probas = { T0 : (33.3,13.4),
-               T1 : (39.9,16.9), 
-               T2 : (43.2,11.8),
-               T3 : (47.1,16.9) }
-    probavalue, sd = probas[intensity]
-    minval=6
-    maxval=150
-    return  normal_realization(probavalue, sd, maxval, minval)/100.
+#def individual_leafarea_unpruned(intensity):
+#    """ Individual leaf area of GU borned from an unpruned GU in dm2 """
+#    probas = { T0 : (33.3,13.4),
+#               T1 : (39.9,16.9), 
+#               T2 : (43.2,11.8),
+#               T3 : (47.1,16.9) }
+#    probavalue, sd = probas[intensity]
+#    minval=6
+#    maxval=150
+#    return  normal_realization(probavalue, sd, maxval, minval)/100.
 
 ###############################################################################
 
