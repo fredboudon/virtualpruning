@@ -160,7 +160,7 @@ def daily_light_estimation(scene, diffuseratio = 0.3, energy = 100000, date='202
         values[str(hour)+'H'] = value
         hour += 1
     res = concat(values, axis=1)
-    res.fillna(0)
+    res.fillna(0,inplace=True)
     return res 
 
 def daily_light_variables(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, skydiscretization = 46, debug = False):

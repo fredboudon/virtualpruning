@@ -177,9 +177,11 @@ def representation(mtg, focus = None,
                         colorizer = ClassColoring(), 
                         leaves = False, 
                         wood = True, 
-                        gc = True, 
+                        gc = True,
+                        sensors = False,
                         fieldoriented = True, 
                         leafreorientation = 30,
+                        sensorsize = 5,
                         todate = None):
     import inspect
     if inspect.isclass(colorizer):
@@ -269,7 +271,10 @@ def representation(mtg, focus = None,
 
         unittype = g.property('UnitType').get(vid,'B')
         if pt:
-            turtle.setId(v)
+            if sensors:
+                turtle.setId(Shape.NOID-1)
+            else:
+                turtle.setId(v)
             if 'M' in unittype:
                 pass
             elif 'C' in unittype:
@@ -301,11 +306,6 @@ def representation(mtg, focus = None,
                         seglength = length/nbleaf
                         parentradius = diameters.get(parent)
                         segdiaminc = (radius-parentradius)/nbleaf
-                        if g.max_scale() == 4:
-                            leafids = [vid for vid in g.components(v) if g.label(vid) == 'L']
-                            assert len(leafids) == nbleaf
-                        else:
-                            leafids = None
                         for i in range(nbleaf):
                             if wood:
                                 turtle.F(seglength,parentradius+segdiaminc*(i+1))
@@ -313,20 +313,27 @@ def representation(mtg, focus = None,
                                 turtle.f(seglength)
                             turtle.rollR(144)
                             turtle.push()
-                            if leafreorientation:
+                            if not leafreorientation is None:
                                 turtle.down(90)
                                 turtle.rollToVert()
                                 turtle.rollToHorizontal()
                                 turtle.up(90-leafreorientation)
-                            if leafids:
-                                turtle.setId(leafids[i])
                             turtle.surface('leaf', gauss(*leaf_length_distrib[g.edge_type(g.parent(v))]))
                             turtle.pop()
                             #leaf(turtle, gauss(*leaf_length_distrib[mtg.edge_type(mtg.parent(v))]) )
                         turtle.setWidth(radius)
-
+                    if sensors and nbleaf > 0:
+                        turtle.push()
+                        turtle.setId(v)
+                        turtle.setHead((0,0,1),((1,0,0)))
+                        turtle.f(0.5)
+                        turtle.down(90)
+                        turtle.f(-sensorsize/2)
+                        turtle.setColor(20)
+                        turtle.setWidth(sensorsize/2)
+                        turtle.quad(sensorsize)
+                        turtle.pop()
                 else:
-
                     if gc : turtle.stopGC()
                     if g.edge_type(v) == '+':
                         parent = mtg.parent(v)
@@ -344,13 +351,11 @@ def representation(mtg, focus = None,
                         turtle.setWidth(radius)
                         if gc : turtle.startGC()
 
-
-
-
     turtle = PglTurtle()
     turtle.setSurface('leaf', leafsmb())
     turtle.setColorAt(7,(30,22,7))
     turtle.setColorAt(1,(65,45,15))
+    turtle.setColorAt(20,(0,0,0))
     if hasattr(colorizer,'prepare_turtle'):
         colorizer.prepare_turtle(turtle)
     sc = pf.plot(origins=[(0,0,0)],visitor=plantframe_visitor,gc=gc, turtle = turtle, display = False)
