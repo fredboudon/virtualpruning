@@ -1,5 +1,6 @@
 from pruning import T0, T1, T2, T3
 from mangoG3 import eApical, eLateral
+from pruning import n1, n2, n3
 
 from randomgeneration import *
 
@@ -62,7 +63,7 @@ def lateral_directions(maindir, angle, nb):
     
 #    return newgus
 
-def create_daughters_unpruned(mtg, vid, apical, nblateral, burstdate):
+def create_daughters_unpruned(mtg, vid, apical, nblateral, burstdate, intensity):
     import mangoG3 as mg3
     parentdirection = mg3.get_gu_normed_direction(mtg, vid)
     topposition = mg3.get_gu_top_position(mtg, vid)
@@ -73,33 +74,32 @@ def create_daughters_unpruned(mtg, vid, apical, nblateral, burstdate):
 
     if apical:
         apicaldaughter = mtg.add_child(vid, edge_type = '<', UnitType = 'U', label = 'S'+str(int(mtg.label(vid)[1:])+1))        
-        l = gu_length_unpruned(position)
+        l = gu_length_unpruned(mg3.eApical)
+        nb_leaf = gu_nb_leaf_unpruned(l, mg3.eApical)    
+        leaf_area = gu_leaf_area_unpruned(intensity, mg3.eApical)
         mg3.set_gu_top_position(mtg, apicaldaughter, topposition + parentdirection * l )
         mg3.set_gu_diameter(mtg, apicaldaughter, diam)
         newgus.append(apicaldaughter)
-        lengths.append(l)
         mg3.set_gu_property(mtg, apicaldaughter, "Regrowth", True)
         mg3.set_gu_property(mtg, apicaldaughter, "BurstDate", burstdate)
+        mg3.set_gu_property(mtg, apicaldaughter, "NbLeaf", nb_leaf)
+        mg3.set_gu_property(mtg, apicaldaughter, "UnitLeafArea", leaf_area)
         
     branching_angle = 60
     if nblateral > 0:
         for latiter, latdirection in enumerate(lateral_directions(parentdirection, branching_angle, nblateral)):
             lateralconnection = mtg.add_child(vid, edge_type = '+', label = 'S1', Position = topposition, UnitType = 'U')
             lateraldaughter   = mtg.add_child(lateralconnection, edge_type = '<', label = 'S2', UnitType = 'U', Diameter=diam/10.)
-            l = gu_length_unpruned(position)
+            l = gu_length_unpruned(mg3.eLateral)
+            nb_leaf = gu_nb_leaf_unpruned(l, mg3.eLateral)    
+            leaf_area = gu_leaf_area_unpruned(intensity, mg3.eLateral)
             mg3.set_gu_top_position(mtg, lateraldaughter, topposition + latdirection * l )
             mg3.set_gu_diameter(mtg, lateraldaughter, diam)
-            # newconnections.append(lateralconnection)
             newgus.append(lateraldaughter)
-            lengths.append(l)
             mg3.set_gu_property(mtg, lateraldaughter, "Regrowth", True)
             mg3.set_gu_property(mtg, lateraldaughter, "BurstDate", burstdate)
-            
-        unitNb_leaf = gu_nb_leaf_unpruned(l, position)    
-        unitla = gu_leaf_area_unpruned(intensity, position)
-        for vid, l in zip(newgus, lengths):
-            leafarea = unitla*l
-            mg3.set_gu_property(mtg, vid, "LeafArea", leafarea)
+            mg3.set_gu_property(mtg, lateraldaughter, "NbLeaf", nb_leaf)
+            mg3.set_gu_property(mtg, lateraldaughter, "UnitLeafArea", leaf_area)
     
     return newgus
 
@@ -115,12 +115,15 @@ def create_daughters_pruned(mtg, vid, apical, nblateral, burstdate, severity, in
     if apical:
         apicaldaughter = mtg.add_child(vid, edge_type = '<', UnitType = 'U', label = 'S'+str(int(mtg.label(vid)[1:])+1))        
         l = gu_length_pruned(severity)
+        nb_leaf = gu_nb_leaf_pruned(l, severity)    
+        leaf_area = gu_leaf_area_pruned(intensity, severity)
         mg3.set_gu_top_position(mtg, apicaldaughter, topposition + parentdirection * l )
         mg3.set_gu_diameter(mtg, apicaldaughter, diam)
         newgus.append(apicaldaughter)
-        lengths.append(l)
         mg3.set_gu_property(mtg, apicaldaughter, "Regrowth", True)
         mg3.set_gu_property(mtg, apicaldaughter, "BurstDate", burstdate)
+        mg3.set_gu_property(mtg, apicaldaughter, "NbLeaf", nb_leaf)
+        mg3.set_gu_property(mtg, apicaldaughter, "UnitLeafArea", leaf_area)
         
     branching_angle = 60
     if nblateral > 0:
@@ -128,19 +131,16 @@ def create_daughters_pruned(mtg, vid, apical, nblateral, burstdate, severity, in
             lateralconnection = mtg.add_child(vid, edge_type = '+', label = 'S1', Position = topposition, UnitType = 'U')
             lateraldaughter   = mtg.add_child(lateralconnection, edge_type = '<', label = 'S2', UnitType = 'U', Diameter=diam/10.)
             l = gu_length_pruned(severity)
+            nb_leaf = gu_nb_leaf_pruned(l, severity)    
+            leaf_area = gu_leaf_area_pruned(intensity, severity)
             mg3.set_gu_top_position(mtg, lateraldaughter, topposition + latdirection * l )
             mg3.set_gu_diameter(mtg, lateraldaughter, diam)
             # newconnections.append(lateralconnection)
             newgus.append(lateraldaughter)
-            lengths.append(l)
             mg3.set_gu_property(mtg, lateraldaughter, "Regrowth", True)
             mg3.set_gu_property(mtg, lateraldaughter, "BurstDate", burstdate)
-            
-        unitNb_leaf = gu_nb_leaf_pruned(l, severity)    
-        unitla = gu_leaf_area_pruned(intensity, severity)
-        for vid, l in zip(newgus, lengths):
-            leafarea = unitla*l
-            mg3.set_gu_property(mtg, vid, "LeafArea", leafarea)
+            mg3.set_gu_property(mtg, lateraldaughter, "NbLeaf", nb_leaf)
+            mg3.set_gu_property(mtg, lateraldaughter, "UnitLeafArea", leaf_area)
     
     return newgus
         
@@ -160,8 +160,8 @@ def gu_nb_leaf(position):
 ## Proposition modèle pour générer la longueur d'une UC fille ###########################################
 def gu_length_unpruned(position):
     """ GU daugther length """
-    probas = { A : (6.31, 2.95),
-               L : (4.61, 2.15)}
+    probas = { eApical : (6.31, 2.95),
+               eLateral : (4.61, 2.15)}
 
     probavalue, sd = probas[position]
     minval = 0.1 
@@ -186,10 +186,10 @@ def gu_nb_leaf_unpruned(length, position):
     sd = 2.5
     minval= 0 
     maxval= 18
-    Coef_position = { A : 0.091, 
-                      L : 0.198 }
+    Coef_position = { eApical : 0.091, 
+                      eLateral : 0.198 }
     probavalue = intercept + (0.61) * length + Coef_position[position] 
-    return normal_realization(probavalue, sd, maxval, minval)
+    return round(normal_realization(probavalue, sd, maxval, minval))
 
 def gu_nb_leaf_pruned(length, severity):
     """ GU daugther number of leaf """
@@ -201,7 +201,7 @@ def gu_nb_leaf_pruned(length, severity):
                       n2 : 7.38,
                       n3 : 6.89 }
     probavalue = intercept + (0.46) * length + Coef_severity[severity] 
-    return normal_realization(probavalue, sd, maxval, minval)
+    return round(normal_realization(probavalue, sd, maxval, minval))
 
 ## Proposition modèle pour générer la surface individuelle de feuille pour une UC fille ##############################
 def gu_leaf_area_unpruned(intensity, position):
@@ -211,8 +211,8 @@ def gu_leaf_area_unpruned(intensity, position):
     minval= 4.88
     maxval= 111.16
     
-    Coef_position = { A : 48.95, 
-                      L : 32.37 }
+    Coef_position = { eApical : 48.95, 
+                      eLateral : 32.37 }
         
     probavalue = intercept + (42.91) * intensity + Coef_position[position] 
     return normal_realization(probavalue, sd, maxval, minval)

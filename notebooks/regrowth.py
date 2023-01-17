@@ -1,7 +1,9 @@
 import numpy as np
-from regrowth_base import *
+import regrowth; reload(regrowth)
+from regrowth import *
 import mangoG3 as mg
 from pruning import intensity_level
+from pruning import n1, n2, n3
 
 def burst_pruned(diameter, intensity, Zeta_mean):
     if np.isnan(Zeta_mean):
@@ -25,7 +27,7 @@ def burst_unpruned(diameter, intensity, Zeta_mean):
 
 def nb_daughter_pruned(diameter, intensity, Zeta_mean):
     import numpy as np
-    if np.isnan(zeta_mean):
+    if np.isnan(Zeta_mean):
         Zeta_mean = 0
     intercept = - 4.12
     probavalue = poisson_proba_from_latent(intercept + 0.32 * diameter 
@@ -78,7 +80,7 @@ from importlib import reload
 import mortality ; reload(mortality)
 from mortality import gu_mortality_post_regrowth
 
-def growth_pruned_gu(mtg, vid, intensity, Zeta_mean, pruningdate, mortalityenabled = True):
+def growth_pruned_gu(mtg, vid, intensity, severity, Zeta_mean, pruningdate, mortalityenabled = True):
     if np.isnan(Zeta_mean):
         Zeta_mean = 0
     diameter = mg.get_gu_diameter(mtg, vid)
@@ -90,10 +92,8 @@ def growth_pruned_gu(mtg, vid, intensity, Zeta_mean, pruningdate, mortalityenabl
             nbdaughter = gu_mortality_post_regrowth(mtg, vid, nbdaughter)
         if nbdaughter > 0:
             ilevel = intensity_level(intensity)
-            totalleafarea = total_leafarea_pruned(diameter)
-            individualleafarea = individual_leafarea_pruned(ilevel)
             burstdate = pruningdate + timedelta(days = burstdelay(intensity))
-            return create_daughters(mtg, vid, 0, nbdaughter, burstdate, totalleafarea, individualleafarea)       
+            return create_daughters_pruned(mtg, vid, 0, nbdaughter, burstdate, severity, intensity)       
 
 
 def growth_unpruned_gu(mtg, vid, intensity, Zeta_mean, pruningdate, mortalityenabled = True):
@@ -109,14 +109,12 @@ def growth_unpruned_gu(mtg, vid, intensity, Zeta_mean, pruningdate, mortalityena
         if nbdaughter > 0:
             apical_bud = binomial_realization(0.52) # On le laisse ?
             ilevel = intensity_level(intensity)
-            totalleafarea = total_leafarea_unpruned(ilevel, diameter, apical_bud)
-            individualleafarea = individual_leafarea_unpruned(ilevel)
             burstdate = pruningdate + timedelta(days = burstdelay(intensity))
-            return create_daughters(mtg, vid, int(apical_bud), nbdaughter-int(apical_bud), burstdate, totalleafarea, individualleafarea)
+            return create_daughters_unpruned(mtg, vid, int(apical_bud), nbdaughter-int(apical_bud), burstdate, intensity)
 
 
 
-def growth(mtg, Zeta_mean = None, intensity = None, 
+def growth(mtg, Zeta_mean = None, intensity = None, severity = None, 
            pruningdate = date(2021,2,24), maxdiamunpruned = 10, mortalityenabled = True):
     if intensity is None:
         from pruning import continuous_intensity_from_pruned
@@ -131,8 +129,10 @@ def growth(mtg, Zeta_mean = None, intensity = None,
     nbpruned, nbunpruned, nbignored = 0,0,0
     for vid in terminals:
         if vid in pruned:
+            severity =  pruned[vid]
             lnewids = growth_pruned_gu(newmtg, vid, 
                                        intensity, 
+                                       severity,
                                        Zeta_mean.get(vid,0),
                                        pruningdate,
                                        mortalityenabled=mortalityenabled)
