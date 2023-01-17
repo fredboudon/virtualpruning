@@ -15,7 +15,54 @@ def lateral_directions(maindir, angle, nb):
     return result
 
 
-def create_daughters(mtg, vid, apical, nblateral, burstdate, totalleafarea = None,  individualleafarea = None):
+#def create_daughters(mtg, vid, apical, nblateral, burstdate, totalleafarea = None,  individualleafarea = None):
+#    import mangoG3 as mg3
+#    parentdirection = mg3.get_gu_normed_direction(mtg, vid)
+#    topposition = mg3.get_gu_top_position(mtg, vid)
+#    diam = mg3.get_gu_diameter(mtg, vid)
+#    newgus = []
+    # newconnections = []
+#    lengths = []
+#    if not totalleafarea is None:
+#        mg3.set_gu_property(mtg, vid, "RegeneratedLeafArea", totalleafarea)
+
+#    if apical:
+#        apicaldaughter = mtg.add_child(vid, edge_type = '<', UnitType = 'U', label = 'S'+str(int(mtg.label(vid)[1:])+1))        
+#        l = gu_length(mg3.eApical, mg3.gu_position(mtg, vid) )
+#        mg3.set_gu_top_position(mtg, apicaldaughter, topposition + parentdirection * l )
+#        mg3.set_gu_diameter(mtg, apicaldaughter, diam)
+#        newgus.append(apicaldaughter)
+#        lengths.append(l)
+#        mg3.set_gu_property(mtg, apicaldaughter, "Regrowth", True)
+#        mg3.set_gu_property(mtg, apicaldaughter, "BurstDate", burstdate)
+        
+#    branching_angle = 60
+#    if nblateral > 0:
+#        for latiter, latdirection in enumerate(lateral_directions(parentdirection, branching_angle, nblateral)):
+#            lateralconnection = mtg.add_child(vid, edge_type = '+', label = 'S1', Position = topposition, UnitType = 'U')
+#            lateraldaughter   = mtg.add_child(lateralconnection, edge_type = '<', label = 'S2', UnitType = 'U', Diameter=diam/10.)
+#            l = gu_length(mg3.eLateral, mg3.gu_position(mtg, vid) )
+#            mg3.set_gu_top_position(mtg, lateraldaughter, topposition + latdirection * l )
+#            mg3.set_gu_diameter(mtg, lateraldaughter, diam)
+            # newconnections.append(lateralconnection)
+#            newgus.append(lateraldaughter)
+#            lengths.append(l)
+#            mg3.set_gu_property(mtg, lateraldaughter, "Regrowth", True)
+#            mg3.set_gu_property(mtg, lateraldaughter, "BurstDate", burstdate)
+            #print(get_gu_top_position(mtg, lateraldaughter),get_gu_bottom_position(mtg, lateraldaughter), get_gu_diameter(mtg, lateraldaughter))
+
+#    totlength = sum(lengths)
+#    if not totalleafarea is None and totalleafarea > 0:
+#        unitla = totalleafarea / totlength
+#        for vid, l in zip(newgus, lengths):
+#            leafarea = unitla*l
+#            mg3.set_gu_property(mtg, vid, "LeafArea", leafarea)
+#            if not individualleafarea is None:
+#                mg3.set_gu_property(mtg, vid, "NbLeaf", int(round(leafarea / individualleafarea)))
+    
+#    return newgus
+
+def create_daughters_unpruned(mtg, vid, apical, nblateral, burstdate):
     import mangoG3 as mg3
     parentdirection = mg3.get_gu_normed_direction(mtg, vid)
     topposition = mg3.get_gu_top_position(mtg, vid)
@@ -23,12 +70,10 @@ def create_daughters(mtg, vid, apical, nblateral, burstdate, totalleafarea = Non
     newgus = []
     # newconnections = []
     lengths = []
-    if not totalleafarea is None:
-        mg3.set_gu_property(mtg, vid, "RegeneratedLeafArea", totalleafarea)
 
     if apical:
         apicaldaughter = mtg.add_child(vid, edge_type = '<', UnitType = 'U', label = 'S'+str(int(mtg.label(vid)[1:])+1))        
-        l = gu_length(mg3.eApical, mg3.gu_position(mtg, vid) )
+        l = gu_length_unpruned(position)
         mg3.set_gu_top_position(mtg, apicaldaughter, topposition + parentdirection * l )
         mg3.set_gu_diameter(mtg, apicaldaughter, diam)
         newgus.append(apicaldaughter)
@@ -41,7 +86,7 @@ def create_daughters(mtg, vid, apical, nblateral, burstdate, totalleafarea = Non
         for latiter, latdirection in enumerate(lateral_directions(parentdirection, branching_angle, nblateral)):
             lateralconnection = mtg.add_child(vid, edge_type = '+', label = 'S1', Position = topposition, UnitType = 'U')
             lateraldaughter   = mtg.add_child(lateralconnection, edge_type = '<', label = 'S2', UnitType = 'U', Diameter=diam/10.)
-            l = gu_length(mg3.eLateral, mg3.gu_position(mtg, vid) )
+            l = gu_length_unpruned(position)
             mg3.set_gu_top_position(mtg, lateraldaughter, topposition + latdirection * l )
             mg3.set_gu_diameter(mtg, lateraldaughter, diam)
             # newconnections.append(lateralconnection)
@@ -49,16 +94,53 @@ def create_daughters(mtg, vid, apical, nblateral, burstdate, totalleafarea = Non
             lengths.append(l)
             mg3.set_gu_property(mtg, lateraldaughter, "Regrowth", True)
             mg3.set_gu_property(mtg, lateraldaughter, "BurstDate", burstdate)
-            #print(get_gu_top_position(mtg, lateraldaughter),get_gu_bottom_position(mtg, lateraldaughter), get_gu_diameter(mtg, lateraldaughter))
-
-    totlength = sum(lengths)
-    if not totalleafarea is None and totalleafarea > 0:
-        unitla = totalleafarea / totlength
+            
+        unitNb_leaf = gu_nb_leaf_unpruned(l, position)    
+        unitla = gu_leaf_area_unpruned(intensity, position)
         for vid, l in zip(newgus, lengths):
             leafarea = unitla*l
             mg3.set_gu_property(mtg, vid, "LeafArea", leafarea)
-            if not individualleafarea is None:
-                mg3.set_gu_property(mtg, vid, "NbLeaf", int(round(leafarea / individualleafarea)))
+    
+    return newgus
+
+def create_daughters_pruned(mtg, vid, apical, nblateral, burstdate, severity, intensity):
+    import mangoG3 as mg3
+    parentdirection = mg3.get_gu_normed_direction(mtg, vid)
+    topposition = mg3.get_gu_top_position(mtg, vid)
+    diam = mg3.get_gu_diameter(mtg, vid)
+    newgus = []
+    # newconnections = []
+    lengths = []
+
+    if apical:
+        apicaldaughter = mtg.add_child(vid, edge_type = '<', UnitType = 'U', label = 'S'+str(int(mtg.label(vid)[1:])+1))        
+        l = gu_length_pruned(severity)
+        mg3.set_gu_top_position(mtg, apicaldaughter, topposition + parentdirection * l )
+        mg3.set_gu_diameter(mtg, apicaldaughter, diam)
+        newgus.append(apicaldaughter)
+        lengths.append(l)
+        mg3.set_gu_property(mtg, apicaldaughter, "Regrowth", True)
+        mg3.set_gu_property(mtg, apicaldaughter, "BurstDate", burstdate)
+        
+    branching_angle = 60
+    if nblateral > 0:
+        for latiter, latdirection in enumerate(lateral_directions(parentdirection, branching_angle, nblateral)):
+            lateralconnection = mtg.add_child(vid, edge_type = '+', label = 'S1', Position = topposition, UnitType = 'U')
+            lateraldaughter   = mtg.add_child(lateralconnection, edge_type = '<', label = 'S2', UnitType = 'U', Diameter=diam/10.)
+            l = gu_length_pruned(severity)
+            mg3.set_gu_top_position(mtg, lateraldaughter, topposition + latdirection * l )
+            mg3.set_gu_diameter(mtg, lateraldaughter, diam)
+            # newconnections.append(lateralconnection)
+            newgus.append(lateraldaughter)
+            lengths.append(l)
+            mg3.set_gu_property(mtg, lateraldaughter, "Regrowth", True)
+            mg3.set_gu_property(mtg, lateraldaughter, "BurstDate", burstdate)
+            
+        unitNb_leaf = gu_nb_leaf_pruned(l, severity)    
+        unitla = gu_leaf_area_pruned(intensity, severity)
+        for vid, l in zip(newgus, lengths):
+            leafarea = unitla*l
+            mg3.set_gu_property(mtg, vid, "LeafArea", leafarea)
     
     return newgus
         
