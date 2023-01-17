@@ -3,38 +3,35 @@ from regrowth_base import *
 import mangoG3 as mg
 from pruning import intensity_level
 
-def burst_pruned(diameter, intensity, TrPPFD_mean):
-    if np.isnan(TrPPFD_mean):
-        TrPPFD_mean = 0
-    intercept = -8.020 
-    latent = intercept + 0.380 * diameter + 8.366 * intensity + 20.137 * TrPPFD_mean
+def burst_pruned(diameter, intensity, Zeta_mean):
+    if np.isnan(Zeta_mean):
+        Zeta_mean = 0
+    intercept = -9.85 
+    latent = intercept + 0.39 * diameter + 7.60 * intensity + 4.39 * Zeta_mean
     probavalue = binomial_proba_from_latent(latent)
 
     return binomial_realization(probavalue)
 
-def burst_unpruned(diameter, intensity, TrPPFD_mean):
-    if np.isnan(TrPPFD_mean):
-        TrPPFD_mean = 0
-    intercept = -5.581 
-    latent = intercept + 0.303 * diameter + 6.339 * intensity + 4.335 * TrPPFD_mean
+def burst_unpruned(diameter, intensity, Zeta_mean):
+    if np.isnan(Zeta_mean):
+        Zeta_mean = 0
+    intercept = -7.62 
+    latent = intercept + 0.32 * diameter + 5.71 * intensity + 4.28 * Zeta_mean
 
     probavalue = binomial_proba_from_latent(latent)
     return binomial_realization(probavalue)
 
 ################################################################################# Ajout 2022 Intensité du débourrement
 
-def nb_daughter_pruned(diameter, intensity, TrPPFD_min, Zeta_8H):
+def nb_daughter_pruned(diameter, intensity, Zeta_mean):
     import numpy as np
-    if np.isnan(TrPPFD_min):
-        TrPPFD_min = 0
-    if np.isnan(Zeta_8H):
-        Zeta_8H = 0
-    intercept = - 1.51
-    probavalue = poisson_proba_from_latent(intercept + 0.14 * diameter 
-                                                     + 1.24 * intensity 
-                                                     + 10.74 * TrPPFD_min 
-                                                     + 0.56 * Zeta_8H 
-                                                     -0.65 * diameter * TrPPFD_min)
+    if np.isnan(zeta_mean):
+        Zeta_mean = 0
+    intercept = - 4.12
+    probavalue = poisson_proba_from_latent(intercept + 0.32 * diameter 
+                                                     + 1.19 * intensity 
+                                                     + 4.12 * Zeta_mean
+                                                     -0.25 * diameter * Zeta_mean)
     try:
         return poisson_realization( probavalue, 10)+1  
     except ValueError as ve:
@@ -81,17 +78,13 @@ from importlib import reload
 import mortality ; reload(mortality)
 from mortality import gu_mortality_post_regrowth
 
-def growth_pruned_gu(mtg, vid, intensity, TrPPFD_mean, TrPPFD_min, Zeta_8H, pruningdate, mortalityenabled = True):
-    if np.isnan(TrPPFD_mean):
-        TrPPFD_mean = 0
-    if np.isnan(TrPPFD_min):
-        TrPPFD_min = 0
-    if np.isnan(Zeta_8H):
-        Zeta_8H = 0
+def growth_pruned_gu(mtg, vid, intensity, Zeta_mean, pruningdate, mortalityenabled = True):
+    if np.isnan(Zeta_mean):
+        Zeta_mean = 0
     diameter = mg.get_gu_diameter(mtg, vid)
-    veggrowth = burst_pruned(diameter, intensity, TrPPFD_mean)
+    veggrowth = burst_pruned(diameter, intensity, Zeta_mean)
     if veggrowth:
-        nbdaughter = nb_daughter_pruned(diameter, intensity, TrPPFD_min, Zeta_8H)
+        nbdaughter = nb_daughter_pruned(diameter, intensity, Zeta_mean)
         assert nbdaughter >= 1
         if mortalityenabled:
             nbdaughter = gu_mortality_post_regrowth(mtg, vid, nbdaughter)
@@ -103,13 +96,11 @@ def growth_pruned_gu(mtg, vid, intensity, TrPPFD_mean, TrPPFD_min, Zeta_8H, prun
             return create_daughters(mtg, vid, 0, nbdaughter, burstdate, totalleafarea, individualleafarea)       
 
 
-def growth_unpruned_gu(mtg, vid, intensity, TrPPFD_mean, Zeta_mean, pruningdate, mortalityenabled = True):
-    if np.isnan(TrPPFD_mean):
-        TrPPFD_mean = 0
+def growth_unpruned_gu(mtg, vid, intensity, Zeta_mean, pruningdate, mortalityenabled = True):
     if np.isnan(Zeta_mean):
-        TrPPFD_mean = 0
+        Zeta_mean = 0
     diameter = mg.get_gu_diameter(mtg, vid)
-    veggrowth = burst_unpruned(diameter, intensity, TrPPFD_mean)
+    veggrowth = burst_unpruned(diameter, intensity, Zeta_mean)
     if veggrowth:
         nbdaughter = nb_daughter_unpruned(diameter, intensity, Zeta_mean)
         assert nbdaughter >= 1
@@ -125,7 +116,7 @@ def growth_unpruned_gu(mtg, vid, intensity, TrPPFD_mean, Zeta_mean, pruningdate,
 
 
 
-def growth(mtg, TrPPFD_mean = None, TrPPFD_min = None, Zeta_mean = None, Zeta_8H = None, intensity = None, 
+def growth(mtg, Zeta_mean = None, intensity = None, 
            pruningdate = date(2021,2,24), maxdiamunpruned = 10, mortalityenabled = True):
     if intensity is None:
         from pruning import continuous_intensity_from_pruned
@@ -142,16 +133,13 @@ def growth(mtg, TrPPFD_mean = None, TrPPFD_min = None, Zeta_mean = None, Zeta_8H
         if vid in pruned:
             lnewids = growth_pruned_gu(newmtg, vid, 
                                        intensity, 
-                                       TrPPFD_mean.get(vid,0), 
-                                       TrPPFD_min.get(vid,0),
-                                       Zeta_8H.get(vid,0), 
+                                       Zeta_mean.get(vid,0),
                                        pruningdate,
                                        mortalityenabled=mortalityenabled)
             nbpruned += 1
         elif mg.get_gu_diameter(mtg, vid) <= maxdiamunpruned and not 'A' in mtg.property('Taille').get(vid,''):
             lnewids = growth_unpruned_gu(newmtg, vid, 
                                          intensity, 
-                                         TrPPFD_mean.get(vid,0), 
                                          Zeta_mean.get(vid,0), 
                                          pruningdate,
                                          mortalityenabled=mortalityenabled)

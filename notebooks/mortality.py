@@ -3,24 +3,49 @@ import mangoG3 as mg
 from pruning import n1, n2, n3
 
 ################################################################################# Ajout 2022 Mortalité des UCs mères
-def pruned_gu_mortality(diameter, intensity, severity, Zeta_min):
-    if np.isnan(Zeta_min):
-        Zeta_min = 0
-    intercept = 0.888 
+def pruned_gu_mortality_1(diameter, intensity, severity, Zeta_mean):
+    if np.isnan(Zeta_mean):
+        Zeta_mean = 0
+    intercept = 1.40 
     Coef_severity = { n1 : 0.091, 
                       n2 : 0.198,
                       n3 : 0.232 }
-    linear = intercept -0.227 * diameter + 2.324 * intensity -2.697 * Zeta_min + Coef_severity[severity] 
+    linear = intercept + (-0.25) * diameter + 2.29 * intensity + (-1.85) * Zeta_mean + Coef_severity[severity] 
     probavalue = binomial_proba_from_latent(linear)
 
     return binomial_realization(probavalue)
 
-def unpruned_gu_mortality(Zeta_min):
-    if np.isnan(Zeta_min):
-        Zeta_min = 0
-    intercept = -1.597 
-    linear = intercept -3.696 * Zeta_min 
+def pruned_gu_mortality_2(diameter, intensity, severity, zone):
+    intercept = 0.021 
+    Coef_severity = { n1 : 0.09, 
+                      n2 : 0.20,
+                      n3 : 0.24 }
+    Coef_zone = { I : 0.11, 
+                  B : 0.25,
+                  H : 0.17 }
+    linear = intercept + (-0.24) * diameter + 1.63 * intensity + Coef_zone[zone] + Coef_severity[severity] 
     probavalue = binomial_proba_from_latent(linear)
+
+    return binomial_realization(probavalue)
+
+def pruned_gu_mortality_3():
+    intercept = -1.32 
+    probavalue = binomial_proba_from_latent(intercept)
+
+    return binomial_realization(probavalue)
+
+def unpruned_gu_mortality_1(Zeta_mean):
+    if np.isnan(Zeta_mean):
+        Zeta_mean = 0
+    intercept = -1.67 
+    linear = intercept + (-1.71) * Zeta_mean 
+    probavalue = binomial_proba_from_latent(linear)
+
+    return binomial_realization(probavalue)
+
+def unpruned_gu_mortality_2():
+    intercept = -2.79 
+    probavalue = binomial_proba_from_latent(intercept)
 
     return binomial_realization(probavalue)
 
@@ -44,15 +69,12 @@ def pruned_gu_daughter_mortality_occurence(nb_daughter_gus):
 
     return binomial_realization(probavalue)
 
-## Intensity
+
 def pruned_gu_daughter_mortality_intensity(nb_daughter_gus):
     if nb_daughter_gus <= 1 : return nb_daughter_gus
     intercept = -1.514
     probavalue = poisson_proba_from_latent(intercept + 0.205 * (nb_daughter_gus-1))
     return poisson_realization(probavalue, nb_daughter_gus-1)+1
-
-## Pas assez d'individus pour voir l'effet de facteurs sur l'intensite de la mortalité
-## des GUfilles des UCs non taillées
 
 ################################################################################# 
 
@@ -67,12 +89,12 @@ def remove_gu(mtg, vid):
                 del propvalues[lvid]
 
 
-def gu_mortalities_post_pruning(mtg, Zeta_min = None, intensity = None, inplace = False):
+def gu_mortalities_post_pruning(mtg, Zeta_mean = None, intensity = None, inplace = False):
    if intensity is None:
        from pruning import continuous_intensity_from_pruned
        intensity = continuous_intensity_from_pruned(mtg)
 
-   if Zeta_min is None:
+   if Zeta_mean is None:
         from lightestimation import light_variables_mortality
         from mtgplot import representation
         prunedrepr = representation(mtg, wood = False, leaves=True)
@@ -93,11 +115,11 @@ def gu_mortalities_post_pruning(mtg, Zeta_min = None, intensity = None, inplace 
    for vid in terminals:
         if vid in prunedgus:
             severity =  prunedgus[vid]
-            occurence = pruned_gu_mortality(mg.get_gu_diameter(mtg, vid), intensity, severity, Zeta_min.get(vid,0))
+            occurence = pruned_gu_mortality(mg.get_gu_diameter(mtg, vid), intensity, severity, Zeta_mean.get(vid,0))
             if occurence:
                 toremove.append(vid)
         else:
-            occurence = unpruned_gu_mortality(Zeta_min.get(vid,0))
+            occurence = unpruned_gu_mortality(Zeta_mean.get(vid,0))
             if occurence:
                 toremove.append(vid)
    
