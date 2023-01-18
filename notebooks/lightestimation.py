@@ -183,7 +183,6 @@ def light_variables_mortality(scene, diffuseratio = 0.3, date='2021-03-01', star
     # Zeta_12H : Mesure ponctuelle a 12h
     TrPPFD, Zeta = daily_light_variables(scene, 
                             diffuseratio = diffuseratio, 
-                            energy = energy, 
                             date=date, 
                             starthour = starthour, 
                             endhour = endhour,
@@ -200,12 +199,8 @@ def light_variables_regrowth(scene, diffuseratio = 0.3, date='2021-03-01', start
                             endhour = endhour,
                             skydiscretization=skydiscretization,
                             debug = debug)
-    TrPPFD_mean = TrPPFD.mean(axis=1)
-    TrPPFD_min = TrPPFD.min(axis=1)
     Zeta_mean = Zeta.mean(axis=1)
-    Zeta_min = Zeta.min(axis=1)
-    Zeta_8H = Zeta['8H']
-    return TrPPFD_mean, TrPPFD_min, Zeta_mean, Zeta_min, Zeta_8H
+    return Zeta_mean
 
 
 

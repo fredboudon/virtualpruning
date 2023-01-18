@@ -76,13 +76,12 @@ def tofloat(v):
         return float(v)
 
 class PropertyGradientColoring: 
-    def __init__(self, prop, listids = None, tofloat = tofloat, minvalue = None, maxvalue = None, mincolor = Material((200,200,0)), maxcolor = Material((200,0,0)), defaultcolor = Material((45,65,15))):
+    def __init__(self, prop, listids = None, tofloat = tofloat, minvalue = None, maxvalue = None, cmap='jet', defaultcolor = Material((45,65,15))):
         import mangoG3 as mg
         self.prop = prop
         self.tofloat = tofloat
-        self.listids = set(listids) if listids else listids
-        self.mincolor = mincolor
-        self.maxcolor = maxcolor
+        self.listids = set(listids) if not listids is None else listids
+        self.cmap = PglMaterialMap(min(self.prop),max(self.prop),cmap)
         self.defaultcolor = defaultcolor
         self.made = set()
         self.minvalue = minvalue
@@ -92,7 +91,7 @@ class PropertyGradientColoring:
         if type(self.prop) == str:
             return lambda v : mg.get_gu_property(self.mtg, v, self.prop)
         elif hasattr(self.prop,'__getitem__'):
-            return lambda v : self.prop[v]
+            return lambda v : self.prop.get(v,0)
         elif callable(self.prop):
             return self.prop
         else :
@@ -101,8 +100,8 @@ class PropertyGradientColoring:
     def prepare_turtle(self, turtle):
         from openalea.plantgl.all import Material
         turtle.setMaterial(1, self.defaultcolor) # ,transparency=0.8))
-        turtle.setMaterial(10,self.mincolor)
-        turtle.setMaterial(11,self.maxcolor)
+        #turtle.setMaterial(10,self.mincolor)
+        #turtle.setMaterial(11,self.maxcolor)
 
     def done(self, turtle):
         pass #print self.listids.symmetric_difference(self.made)
@@ -114,13 +113,13 @@ class PropertyGradientColoring:
         if not self.listids is None:
             toconsider = [f(vid) for vid in self.listids]  
         else:
-            toconsider = list(prop.values())
-        if self.minvalue is None:
-            self.minvalue = min(toconsider)
-        if self.maxvalue is None:
-            self.maxvalue = max(toconsider)
+            toconsider = self.prop.values
+        #if self.minvalue is None:
+        #    self.minvalue = min(toconsider)
+        #if self.maxvalue is None:
+        #    self.maxvalue = max(toconsider)
         #print(self.minvalue, self.maxvalue)
-        self.deltavalue = self.tofloat(self.maxvalue - self.minvalue)
+        #self.deltavalue = self.tofloat(self.maxvalue - self.minvalue)
 
 
     def __call__(self, turtle, vid):
@@ -128,10 +127,12 @@ class PropertyGradientColoring:
         f = self.get_prop()
         if self.listids is None or vid in self.listids :
             v = f(vid)
-            if self.minvalue <= v <= self.maxvalue:
-                self.made.add(vid)
-                value = self.tofloat(v-self.minvalue)/self.deltavalue
-                turtle.interpolateColors(10,11,value)
+            if not v is None:
+                turtle.setCustomAppearance(self.cmap(v))
+            #if self.minvalue <= v <= self.maxvalue:
+            #    self.made.add(vid)
+            #    value = self.tofloat(v-self.minvalue)/self.deltavalue
+            #    turtle.interpolateColors(10,11,value)
             else:
                 turtle.setColor(1)
         else:

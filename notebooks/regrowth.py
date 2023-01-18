@@ -1,6 +1,5 @@
 import numpy as np
-import regrowth; reload(regrowth)
-from regrowth import *
+from regrowth_base import *
 import mangoG3 as mg
 from pruning import intensity_level
 from pruning import n1, n2, n3
@@ -114,7 +113,7 @@ def growth_unpruned_gu(mtg, vid, intensity, Zeta_mean, pruningdate, mortalityena
 
 
 
-def growth(mtg, Zeta_mean = None, intensity = None, severity = None, 
+def growth(mtg, Zeta_mean = None, intensity = None, 
            pruningdate = date(2021,2,24), maxdiamunpruned = 10, mortalityenabled = True):
     if intensity is None:
         from pruning import continuous_intensity_from_pruned

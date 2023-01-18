@@ -31,6 +31,37 @@ def poisson_realization(proba, maxval = sys.maxsize, minval = 0):
         val = int( poisson(proba, 1) )
     return val
 
+def nb_convert_params(mu, theta):
+    """ 
+    Convert mean/dispersion parameterization of a negative binomial to the ones scipy supports
+
+    Parameters
+    ----------
+    mu : float 
+       Mean of NB distribution.
+    theta : float
+       dispersion parameter used for variance calculation.
+
+    """
+    n = theta
+    p = theta/(theta + mu)
+    return n, p
+
+def negativebinomial_mu_from_latent(latent):
+    return exp(latent)
+
+def negativebinomial_realization(mu, theta, maxval = sys.float_info.max, minval = sys.float_info.min):
+    assert maxval > minval
+    proba = theta/(theta + mu)
+    val = int( negative_binomial(proba, theta, 1) )
+    count = 0
+    while (val < minval) or (val > maxval):
+        count += 1
+        if count >= 1000:
+            raise ValueError(proba, maxval, minval)
+        val = int( negative_binomial(proba, theta, 1) )
+    return val
+
 def normal_realization(mean, sd, maxval = sys.float_info.max, minval = sys.float_info.min):
     assert maxval > minval
     val = normal(mean, sd)

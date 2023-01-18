@@ -80,6 +80,8 @@ class PruningColoring:
         self.mtg = mtg            
         self.removedcolors = {  1 : (100,100,200), 2: (200,200,100), 3: (200,100,100)}
         self.prunedcolors =  {  1 : (0,0,255), 2: (255,255,0), 3: (255,0,0)}
+        self.unittype = self.mtg.property('UnitType')
+        self.colors = { 'B' : 7, 'D' : 1, 'O' : 4, 'U' : 2}
     def __call__(self, turtle, vid):
         if vid in self.mtg.property('pruned'):
             color = self.prunedcolors[self.mtg.property('pruned').get(vid)]
@@ -87,7 +89,8 @@ class PruningColoring:
             color = self.removedcolors[self.mtg.property('removed').get(vid)]
         else:
             if self.pruningonly : return False
-            else: color = 2
+            else: 
+                color = self.colors[self.unittype.get(vid,'B')] # 2
         if type(color) == int:
             turtle.setColor(color)
         else:
@@ -103,11 +106,11 @@ def assign_pruning(mtg, listidpruned, checkvalidity = True):
     mtg.property('removed').update(removedproperty)
 
 
-def plot_pruning(mtg, listidpruned = None, leaves = True, onlypruning = False, checkvalidity = True):
+def plot_pruning(mtg, listidpruned = None, leaves = True, onlypruning = False, checkvalidity = True, focus = None):
     if not listidpruned is None:
         assign_pruning(mtg, listidpruned, checkvalidity)
     import mtgplot as mp
-    sc = mp.representation(mtg, colorizer=PruningColoring(onlypruning), gc = False, leaves=leaves)
+    sc = mp.representation(mtg, colorizer=PruningColoring(onlypruning), gc = False, leaves=leaves, focus = focus)
     return mp.display(sc)
 
 refposition = (-12, 22, 122) # (25,30,120)
