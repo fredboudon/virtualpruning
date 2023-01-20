@@ -82,15 +82,18 @@ class PruningColoring:
         self.prunedcolors =  {  1 : (0,0,255), 2: (255,255,0), 3: (255,0,0)}
         self.unittype = self.mtg.property('UnitType')
         self.colors = { 'B' : 7, 'D' : 1, 'O' : 4, 'U' : 2}
+        self.black = (0,0,0)
     def __call__(self, turtle, vid):
-        if vid in self.mtg.property('pruned'):
+        if vid in self.mtg.property('Dead'):
+            color = self.black
+        elif vid in self.mtg.property('pruned'):
             color = self.prunedcolors[self.mtg.property('pruned').get(vid)]
         elif vid in self.mtg.property('removed'):
             color = self.removedcolors[self.mtg.property('removed').get(vid)]
         else:
             if self.pruningonly : return False
             else: 
-                color = self.colors[self.unittype.get(vid,'B')] # 2
+                color = self.colors[self.unittype.get(vid,'B')] 
         if type(color) == int:
             turtle.setColor(color)
         else:

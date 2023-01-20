@@ -119,8 +119,8 @@ def get_gu_terminal_min_depth(mtg, vid):
     if is_terminal(mtg, vid) : return 0
     return min([get_gu_depth(mtg, vid, desc) for desc in get_terminal_gus_from_ancestor(mtg, vid)])
 
-def get_gu_property(mtg, vid, propname, toppoint = True):
-    return mtg.property(propname)[get_gu_top_point(mtg,vid) if toppoint else get_gu_bottom_point(mtg,vid)]
+def get_gu_property(mtg, vid, propname, defaultvalue = None, toppoint = True):
+    return mtg.property(propname).get(get_gu_top_point(mtg,vid) if toppoint else get_gu_bottom_point(mtg,vid),defaultvalue)
 
 def set_gu_property(mtg, vid, propname, value, toppoint = True):
     mtg.property(propname)[get_gu_top_point(mtg,vid) if toppoint else get_gu_bottom_point(mtg,vid)] = value

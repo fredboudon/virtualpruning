@@ -2,48 +2,60 @@ from randomgeneration import *
 import mangoG3 as mg
 from pruning import n1, n2, n3
 
+eInterior, eBottomPeriphery, eTopPeriphery = range(1,4)
+
 ################################################################################# Ajout 2022 Mortalité des UCs mères
-def pruned_gu_mortality_1(diameter, intensity, severity, Zeta_mean):
+def pruned_gu_mortality_light(diameter, intensity, severity, Zeta_mean):
     if np.isnan(Zeta_mean):
         Zeta_mean = 0
     intercept = 1.40 
-    Coef_severity = { n1 : 0.091, 
-                      n2 : 0.198,
-                      n3 : 0.232 }
-    linear = intercept + (-0.25) * diameter + 2.29 * intensity + (-1.85) * Zeta_mean + Coef_severity[severity] 
+    Coef_severity = { n1 : -0.72, 
+                      n2 : 0.21,
+                      n3 : 0 }
+    linear = intercept -0.25 * diameter + 2.29 * intensity -1.85 * Zeta_mean + Coef_severity[severity] 
     probavalue = binomial_proba_from_latent(linear)
 
     return binomial_realization(probavalue)
 
-def pruned_gu_mortality_2(diameter, intensity, severity, zone):
+def pruned_gu_mortality_zone(diameter, intensity, severity, zone):
     intercept = 0.021 
     Coef_severity = { n1 : 0.09, 
                       n2 : 0.20,
                       n3 : 0.24 }
-    Coef_zone = { I : 0.11, 
-                  B : 0.25,
-                  H : 0.17 }
-    linear = intercept + (-0.24) * diameter + 1.63 * intensity + Coef_zone[zone] + Coef_severity[severity] 
+    Coef_zone = { eInterior : 0.11, 
+                  eBottomPeriphery : 0.25,
+                  eTopPeriphery : 0.17 }
+    linear = intercept -0.24 * diameter + 1.63 * intensity + Coef_zone[zone] + Coef_severity[severity] 
     probavalue = binomial_proba_from_latent(linear)
 
     return binomial_realization(probavalue)
 
-def pruned_gu_mortality_3():
+def pruned_gu_mortality(diameter, intensity, severity):
+    intercept = 0.74 
+    Coef_severity = { n1 : -0.84, 
+                      n2 : 0.23,
+                      n3 : 0. }
+    linear = intercept + -0.3 * diameter + 1.45 * intensity + Coef_severity[severity] 
+    probavalue = binomial_proba_from_latent(linear)
+
+    return binomial_realization(probavalue)
+
+def pruned_gu_mortality_null():
     intercept = -1.32 
     probavalue = binomial_proba_from_latent(intercept)
 
     return binomial_realization(probavalue)
 
-def unpruned_gu_mortality_1(Zeta_mean):
+def unpruned_gu_mortality_light(Zeta_mean):
     if np.isnan(Zeta_mean):
         Zeta_mean = 0
     intercept = -1.67 
-    linear = intercept + (-1.71) * Zeta_mean 
+    linear = intercept -1.71 * Zeta_mean 
     probavalue = binomial_proba_from_latent(linear)
 
     return binomial_realization(probavalue)
 
-def unpruned_gu_mortality_2():
+def unpruned_gu_mortality():
     intercept = -2.79 
     probavalue = binomial_proba_from_latent(intercept)
 
@@ -88,46 +100,52 @@ def remove_gu(mtg, vid):
             if lvid in propvalues:
                 del propvalues[lvid]
 
+eLightBased, eZoneBased, eDefault = range(1,4)
 
-def gu_mortalities_post_pruning(mtg, Zeta_mean = None, intensity = None, inplace = False):
+def gu_mortalities_post_pruning(mtg, intensity = None, model = eDefault, inplace = False):
    if intensity is None:
        from pruning import continuous_intensity_from_pruned
        intensity = continuous_intensity_from_pruned(mtg)
 
-   if Zeta_mean is None:
-        from lightestimation import light_variables_mortality
+   prunedgus = mtg.property('pruned')
+
+   if model == eLightBased:
+        from lightestimation import light_variables
         from mtgplot import representation
         prunedrepr = representation(mtg, wood = False, leaves=True)
-        Zeta_min = light_variables_mortality(prunedrepr)
-
+        Zeta_mean = light_variables(prunedrepr)
+        pruned_gu_mortality_f = lambda vid : pruned_gu_mortality_light(mg.get_gu_diameter(mtg, vid), intensity, prunedgus[vid], Zeta_mean.get(vid,0))
+        unpruned_gu_mortality_f = lambda vid : unpruned_gu_mortality_light(Zeta_mean.get(vid,0))
+   else:
+        pruned_gu_mortality_f = lambda vid : pruned_gu_mortality(mg.get_gu_diameter(mtg, vid), intensity, prunedgus[vid])
+        unpruned_gu_mortality_f = lambda vid : unpruned_gu_mortality()
 
    if not inplace:
         from copy import deepcopy
         newmtg = deepcopy(mtg)
    else:
         newmtg = mtg
-   prunedgus = mtg.property('pruned')
 
    terminals = mg.get_all_terminal_gus(mtg)
    print("Should examine", len(terminals), " GUs.")
 
-   toremove = []
+   tokill = []
    for vid in terminals:
         if vid in prunedgus:
             severity =  prunedgus[vid]
-            occurence = pruned_gu_mortality(mg.get_gu_diameter(mtg, vid), intensity, severity, Zeta_mean.get(vid,0))
+            occurence = pruned_gu_mortality_f( vid)
             if occurence:
-                toremove.append(vid)
+                tokill.append(vid)
         else:
-            occurence = unpruned_gu_mortality(Zeta_mean.get(vid,0))
+            occurence = unpruned_gu_mortality_f(vid)
             if occurence:
-                toremove.append(vid)
+                tokill.append(vid)
    
-   for vid in toremove:
+   for vid in tokill:
         assert(newmtg.nb_children(vid) == 0)
-        remove_gu(newmtg, vid)
+        mg.set_gu_property(newmtg, vid, "Dead", True)
    
-   return newmtg, toremove
+   return newmtg, tokill
 
 def gu_mortalities_post_regrowth(mtg, newids, inplace = False):
    if intensity is None:

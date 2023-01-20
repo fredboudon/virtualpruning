@@ -3,6 +3,11 @@ from regrowth_base import *
 import mangoG3 as mg
 from pruning import intensity_level
 from pruning import n1, n2, n3
+from importlib import reload
+import randomgeneration
+reload(randomgeneration)
+from randomgeneration import *
+
 
 def burst_pruned(diameter, intensity, Zeta_mean):
     if np.isnan(Zeta_mean):
@@ -28,26 +33,28 @@ def nb_daughter_pruned(diameter, intensity, Zeta_mean):
     import numpy as np
     if np.isnan(Zeta_mean):
         Zeta_mean = 0
-    intercept = - 4.12
-    probavalue = poisson_proba_from_latent(intercept + 0.32 * diameter 
-                                                     + 1.19 * intensity 
-                                                     + 4.12 * Zeta_mean
-                                                     -0.25 * diameter * Zeta_mean)
+    intercept = - 4.63
+    mu = negativebinomial_mu_from_latent(intercept + 0.35 * diameter 
+                                                     + 1.37 * intensity 
+                                                     + 4.40 * Zeta_mean
+                                                     -0.27 * diameter * Zeta_mean)
+    theta = 4.48
     try:
-        return poisson_realization( probavalue, 10)+1  
+        return negativebinomial_realization(mu, theta, 10)+1  
     except ValueError as ve:
         print(diameter)
         raise ve
 
 def nb_daughter_unpruned(diameter, intensity, Zeta_mean):
     intercept = -8.15
-    probavalue = poisson_proba_from_latent(intercept + 0.23 * diameter 
-                                                     + 2.12 * intensity 
-                                                     + 6.30 * Zeta_mean)
+    mu = negativebinomial_mu_from_latent(intercept + 0.24 * diameter 
+                                                     + 2.16 * intensity 
+                                                     + 6.25 * Zeta_mean)
+    theta = 6.004
     try:
-        return poisson_realization( probavalue, 10)+1 
+        return negativebinomial_realization(mu, theta, 10)+1 
     except ValueError as ve:
-        print(intensity, diameter, Zeta_mean)
+        print(diameter, intensity, Zeta_mean)
         raise ve
 
 ################################################################################# Ajout 2022 Dynamique du débourrement
@@ -113,18 +120,27 @@ def growth_unpruned_gu(mtg, vid, intensity, Zeta_mean, pruningdate, mortalityena
 
 
 
-def growth(mtg, Zeta_mean = None, intensity = None, 
+def growth(mtg, intensity = None, Zeta_mean = None, 
            pruningdate = date(2021,2,24), maxdiamunpruned = 10, mortalityenabled = True):
     if intensity is None:
         from pruning import continuous_intensity_from_pruned
         intensity = continuous_intensity_from_pruned(mtg)
+    if Zeta_mean is None:
+        from lightestimation import light_variables
+        from mtgplot import representation
+        prunedrepr = representation(mtg, wood = False, leaves=True)
+        Zeta_mean = light_variables(prunedrepr)
+
     from copy import deepcopy
     newmtg = deepcopy(mtg)
     pruned = mtg.property('pruned')
     terminals = mg.get_all_terminal_gus(mtg)
+    nbterminals0 = len(terminals)
+    deads = mtg.property('Dead')
+    terminals = [vid for vid in terminals if not vid in deads]
     nbterminals = len(terminals)
     newids = []
-    print("Should examine", nbterminals, "terminal GUs.")
+    print("Should examine", nbterminals, "terminal GUs ("+str(nbterminals0-nbterminals)+" deads).")
     nbpruned, nbunpruned, nbignored = 0,0,0
     for vid in terminals:
         if vid in pruned:

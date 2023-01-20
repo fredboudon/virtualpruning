@@ -176,24 +176,13 @@ def daily_light_variables(scene, diffuseratio = 0.3, date='2021-03-01', starthou
     Zeta = zeta(TrPPFD)
     return TrPPFD, Zeta
 
-def light_variables_mortality(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, skydiscretization = 46, debug = False):
+def light_variables(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, skydiscretization = 46, debug = False):
     # Compute 
     # TrPPFD_min : Mesure ponctuelle min sur la journée
     # Zeta_min : Mesure ponctuelle min sur la journée
     # Zeta_12H : Mesure ponctuelle a 12h
     TrPPFD, Zeta = daily_light_variables(scene, 
                             diffuseratio = diffuseratio, 
-                            date=date, 
-                            starthour = starthour, 
-                            endhour = endhour,
-                            skydiscretization=skydiscretization,
-                            debug = debug)
-    Zeta_min = Zeta.min(axis=1)
-    return Zeta_min
-
-def light_variables_regrowth(scene, diffuseratio = 0.3, date='2021-03-01', starthour = 7, endhour = 18, skydiscretization = 46, debug = False):
-    TrPPFD, Zeta = daily_light_variables(scene, 
-                            diffuseratio = diffuseratio,
                             date=date, 
                             starthour = starthour, 
                             endhour = endhour,

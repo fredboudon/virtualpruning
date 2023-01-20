@@ -1,7 +1,25 @@
 from math import exp
 import numpy as np
-from numpy.random import binomial, poisson, uniform, normal
+from numpy.random import binomial, poisson, uniform, normal, negative_binomial
 import sys
+
+
+def realisation(mean, sd = None, minval = 0, maxval = sys.maxsize, rfunc = normal):
+    assert maxval > minval
+    if sd is None:
+        val = rfunc(mean, 1)
+    else:
+        val = rfunc(mean, sd, 1)
+    count = 0
+    while (val < minval) or (val > maxval):
+        count += 1
+        if count >= 1000:
+            raise ValueError(mean, sd, maxval, minval)
+        if sd is None:
+            val = rfunc(mean, 1)
+        else:
+            val = rfunc(mean, sd, 1)
+    return val
 
 def binomial_proba_from_latent(latent):
     return exp(latent)/(1+exp(latent))
@@ -21,54 +39,19 @@ def poisson_proba(intercept, coefs, factors):
     return poisson_proba_from_latent(latent)
 
 def poisson_realization(proba, maxval = sys.maxsize, minval = 0):
-    assert maxval > minval
-    val = int( poisson(proba, 1) )
-    count = 0
-    while (val < minval) or (val > maxval):
-        count += 1
-        if count >= 1000:
-            raise ValueError(proba, maxval, minval)
-        val = int( poisson(proba, 1) )
-    return val
+    return int(realisation(proba,None,minval,maxval,poisson))
 
-def nb_convert_params(mu, theta):
-    """ 
-    Convert mean/dispersion parameterization of a negative binomial to the ones scipy supports
-
-    Parameters
-    ----------
-    mu : float 
-       Mean of NB distribution.
-    theta : float
-       dispersion parameter used for variance calculation.
-
-    """
-    n = theta
-    p = theta/(theta + mu)
-    return n, p
 
 def negativebinomial_mu_from_latent(latent):
     return exp(latent)
 
 def negativebinomial_realization(mu, theta, maxval = sys.float_info.max, minval = sys.float_info.min):
-    assert maxval > minval
     proba = theta/(theta + mu)
-    val = int( negative_binomial(proba, theta, 1) )
-    count = 0
-    while (val < minval) or (val > maxval):
-        count += 1
-        if count >= 1000:
-            raise ValueError(proba, maxval, minval)
-        val = int( negative_binomial(proba, theta, 1) )
-    return val
+    if proba < 0 or proba > 1:
+        raise ValueError(proba, theta, mu)
+    return int(realisation(theta,proba,minval,maxval,negative_binomial))
+
 
 def normal_realization(mean, sd, maxval = sys.float_info.max, minval = sys.float_info.min):
-    assert maxval > minval
-    val = normal(mean, sd)
-    count = 0
-    while (val < minval) or (val > maxval):
-        count += 1
-        if count >= 1000:
-            raise ValueError(mean, sd, maxval, minval, val)
-        val = normal(mean, sd)
-    return val
+    return int(realisation(mean,sd,minval,maxval,normal))
+

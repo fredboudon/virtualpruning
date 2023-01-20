@@ -4,6 +4,9 @@ import openalea.mtg.plantframe as opf; importlib.reload(opf)
 from openalea.mtg.plantframe.plantframe import PlantFrame
 from openalea.mtg.plantframe.dresser import DressingData
 from openalea.plantgl.all import *
+from randomgeneration import realisation
+from mangoG3 import eApical, eLateral, gu_position, get_parent
+from math import exp
 
 def pos_prop(mtg):
     xx,yy,zz = mtg.property("XX"),mtg.property("YY"),mtg.property("ZZ")
@@ -46,13 +49,18 @@ class ClassColoring:
     def set_mtg(self, mtg):
         self.mtg = mtg
         self.unittype = self.mtg.property('UnitType')
+        self.deadunits = self.mtg.property('Dead')
         self.colors = { 'B' : 7, 'D' : 1, 'O' : 4, 'U' : 2}
+        self.black = Material('BLACKMAT',(0,0,0))
     def __call__(self, turtle, vid):
         typechange =  (self.unittype[self.mtg.parent(vid)] != self.unittype[vid]) if self.mtg.parent(vid) else False
         gcon = turtle.getParameters().isGeneralizedCylinderOn()
         if typechange and gcon:
             turtle.stopGC()
-        turtle.setColor(self.colors[self.unittype.get(vid,'B')])
+        if vid in self.deadunits:
+            turtle.setCustomAppearance(self.black)
+        else:
+            turtle.setColor(self.colors[self.unittype.get(vid,'B')])
         if typechange  and gcon:
             turtle.startGC()
 
@@ -75,31 +83,39 @@ def tofloat(v):
     else:
         return float(v)
 
+def return_default_if_none(value, default):
+    if value is None : return default
+    else : return value
+
 class PropertyGradientColoring: 
-    def __init__(self, prop, listids = None, tofloat = tofloat, minvalue = None, maxvalue = None, cmap='jet', defaultcolor = Material((45,65,15))):
+    def __init__(self, prop, listids = None, tofloat = tofloat, minvalue = None, maxvalue = None, cmap='jet', defaultvalue = None):
         import mangoG3 as mg
         self.prop = prop
         self.tofloat = tofloat
         self.listids = set(listids) if not listids is None else listids
-        self.cmap = PglMaterialMap(min(self.prop),max(self.prop),cmap)
-        self.defaultcolor = defaultcolor
+        self.cmap = PglMaterialMap(min(self.prop) if minvalue is None else minvalue, max(self.prop) if maxvalue is None else maxvalue,cmap)
+        self.defaultvalue = defaultvalue
         self.made = set()
         self.minvalue = minvalue
         self.maxvalue = maxvalue
 
     def get_prop(self):
         if type(self.prop) == str:
-            return lambda v : mg.get_gu_property(self.mtg, v, self.prop)
+            return lambda v : mg.get_gu_property(self.mtg, v, self.prop, self.defaultvalue)
         elif hasattr(self.prop,'__getitem__'):
-            return lambda v : self.prop.get(v,0)
+            return lambda v : self.prop.get(v, self.defaultvalue)
         elif callable(self.prop):
-            return self.prop
+            if self.defaultvalue is None:
+                return self.prop
+            else:
+                return lambda v : return_default_if_none(self.prop(v), self.defaultvalue)
         else :
             return lambda v : self.prop
 
     def prepare_turtle(self, turtle):
-        from openalea.plantgl.all import Material
-        turtle.setMaterial(1, self.defaultcolor) # ,transparency=0.8))
+        pass
+        #from openalea.plantgl.all import Material
+        #turtle.setMaterial(1, self.defaultcolor) # ,transparency=0.8))
         #turtle.setMaterial(10,self.mincolor)
         #turtle.setMaterial(11,self.maxcolor)
 
@@ -129,14 +145,10 @@ class PropertyGradientColoring:
             v = f(vid)
             if not v is None:
                 turtle.setCustomAppearance(self.cmap(v))
-            #if self.minvalue <= v <= self.maxvalue:
-            #    self.made.add(vid)
-            #    value = self.tofloat(v-self.minvalue)/self.deltavalue
-            #    turtle.interpolateColors(10,11,value)
             else:
-                turtle.setColor(1)
+                return False
         else:
-            turtle.setColor(1)
+            return False
 
 def leafsmb():
 
@@ -174,6 +186,25 @@ axis, north = (0,0,1), -(90-53)
 def rotate_scene(sc, axis = axis, angle = north):
     return Scene([Shape(AxisRotated(axis,angle,sh.geometry),sh.appearance,sh.id,sh.parentId) for sh in sc])
 
+def internode_length_distribution(nb_internodes, gu_length):
+  """ Internode length distribution """
+  if nb_internodes <= 1 : return [ gu_length ]
+  lengths = [exp(-2.64 * i / float(nb_internodes-1)) for i in range(nb_internodes)]
+  scaling = gu_length/ sum(lengths)
+  return [l*scaling for l in lengths]
+
+def length_before_first_leaf(position, final_length_gu):
+  #length of space before the first leaf
+  if position == eApical:
+    from numpy.random import gamma
+    # LEPF = gauss(2.63,1.72)
+    LEPF = min(realisation(2.007, 0.763, 0, 8, gamma)[0],final_length_gu)
+
+  else: # Lateral case
+    #length of space before the first leaf depend of GU's length
+    LEPF = final_length_gu * 0.38 + 0.88
+  return LEPF
+
 def representation(mtg, focus = None, 
                         colorizer = ClassColoring(), 
                         leaves = False, 
@@ -196,13 +227,13 @@ def representation(mtg, focus = None,
 
     topdia = lambda x: mtg.property('Diameter').get(x)
     diameters = {}
-    for vid in mtg.vertices(scale=3):
-        td = topdia(vid)
+    for lvid in mtg.vertices(scale=3):
+        td = topdia(lvid)
         if td is None :
-            if not mtg.parent(vid) is None:
-                diameters[vid] = diameters[mtg.parent(vid)]
+            if not mtg.parent(lvid) is None:
+                diameters[lvid] = diameters[mtg.parent(lvid)]
         else:
-            diameters[vid] = td
+            diameters[lvid] = td
 
     zz = lambda x: minus(mtg.property('ZZ').get(x))
     yy = lambda x: minus(mtg.property('YY').get(x))
@@ -223,14 +254,20 @@ def representation(mtg, focus = None,
 
     colorizer.set_mtg(mtg)
 
-    meanleaflength = 20
-    leaf_length_distrib = { '<'  : ( 17.06 , 2.7) ,
-                            '+' : ( 14.87 , 2.7) }
+    leaf_length_distrib = { eApical  : ( 17.06 , 2.7) ,
+                            eLateral : ( 14.87 , 2.7) }
+    leaf_area_length_ratio   = 2.3594
+    ePruned, eUnPruned = 0,1
+    leaf_area_length_ratio_regrowth   = { ePruned : 2.61, eUnPruned : 2.74}
+
+    InternodesLength = mtg.property('InternodesLength')
+    UnitLeafArea = mtg.property('UnitLeafArea')
+    Dead = mtg.property('Dead')
     
     todraw = None
     if not focus is None:
         if type(focus) == str:
-            vids = [vid for vid,rem in list(mtg.property('Id').items()) if rem == focus]
+            vids = [lvid for lvid,rem in list(mtg.property('Id').items()) if rem == focus]
             if len(vids) >= 1:
                 todraw = set()
                 for v in vids:
@@ -270,7 +307,9 @@ def representation(mtg, focus = None,
         radius = diameters.get(v)
         pt = pf.points.get(v)
 
-        unittype = g.property('UnitType').get(vid,'B')
+        unittype = g.property('UnitType').get(v,'B')
+        dead = Dead.get(v,False)
+
         if pt:
             if sensors:
                 turtle.setId(Shape.NOID-1)
@@ -286,13 +325,14 @@ def representation(mtg, focus = None,
                     colortodraw = True
                 else:
                     colortodraw = colorizer(turtle, v)
-                    if colortodraw is None: colortodraw = True
+                    if colortodraw is None: 
+                        colortodraw = True
                 if g.edge_type(v) == '<':
                     nbleaf = g.property('NbLeaf').get(v,0)
                     if not colortodraw :
                         turtle.move(pt)
                         turtle.setWidth(radius)                        
-                    elif not leaves or nbleaf == 0:
+                    elif not leaves or nbleaf == 0 or dead:
                         if wood:
                             turtle.lineTo(pt, radius)
                         else:
@@ -304,14 +344,30 @@ def representation(mtg, focus = None,
                         parent = g.parent(v)
                         parentpos = pf.points[parent]
                         length = norm(pt-parentpos)
-                        seglength = length/nbleaf
+
+                        position = eApical if gu_position(g, v) else eLateral
+
+                        internodes_length = InternodesLength.get(v)
+                        if internodes_length is None:
+                            LEPF = length_before_first_leaf(position, length)
+                            internodes_length = [LEPF] + internode_length_distribution(nbleaf-1, length-LEPF)
+                            InternodesLength[v] = internodes_length
+
+                        unitleafarea = UnitLeafArea.get(v)
+                        if unitleafarea is None:
+                            unitleafarea = gauss(*leaf_length_distrib[position])*leaf_area_length_ratio
+                            UnitLeafArea[v] = unitleafarea
+                        lalratio = leaf_area_length_ratio
+                        if v in mtg.property('Regrowth'):
+                            lalratio = leaf_area_length_ratio_regrowth[mtg.property('pruned').get(get_parent(g,v)) is None]
+
                         parentradius = diameters.get(parent)
                         segdiaminc = (radius-parentradius)/nbleaf
-                        for i in range(nbleaf):
+                        for i, ilength in enumerate(internodes_length):
                             if wood:
-                                turtle.F(seglength,parentradius+segdiaminc*(i+1))
+                                turtle.F(ilength,parentradius+segdiaminc*(i+1))
                             else:
-                                turtle.f(seglength)
+                                turtle.f(ilength)
                             turtle.rollR(144)
                             turtle.push()
                             if not leafreorientation is None:
@@ -319,9 +375,12 @@ def representation(mtg, focus = None,
                                 turtle.rollToVert()
                                 turtle.rollToHorizontal()
                                 turtle.up(90-leafreorientation)
-                            turtle.surface('leaf', gauss(*leaf_length_distrib[g.edge_type(g.parent(v))]))
+                            positionratio = 1
+                            if nbleaf > 2 and i >= nbleaf-2:
+                                if i == nbleaf-2 : positionratio = 0.52
+                                else: positionratio = 0.38
+                            turtle.surface('leaf', unitleafarea*positionratio/lalratio)
                             turtle.pop()
-                            #leaf(turtle, gauss(*leaf_length_distrib[mtg.edge_type(mtg.parent(v))]) )
                         turtle.setWidth(radius)
                     if sensors and nbleaf > 0:
                         turtle.push()
